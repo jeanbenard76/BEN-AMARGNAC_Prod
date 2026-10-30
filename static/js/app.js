@@ -752,6 +752,9 @@ function setupFormListeners() {
         });
     }
 
+    // Initialisation des raccourcis d'appellations
+    initAppellationShortcuts();
+
     // Bouton Estimation Cote iDealwine
     const btnEstimate = document.getElementById('btnIdealwineEstimate');
     if (btnEstimate) {
@@ -843,8 +846,114 @@ async function triggerIdealwineEstimate(e) {
 }
 window.triggerIdealwineEstimate = triggerIdealwineEstimate;
 
+
+// ==========================================
+// BASE DE DONNÉES & RACCOURCIS D'APPELLATIONS
+// ==========================================
+const APPELLATION_DATABASE = {
+    // Bordeaux
+    'Margaux': { region: 'Bordeaux', type: 'Rouge' },
+    'Pauillac': { region: 'Bordeaux', type: 'Rouge' },
+    'Saint-Julien': { region: 'Bordeaux', type: 'Rouge' },
+    'Saint-Estèphe': { region: 'Bordeaux', type: 'Rouge' },
+    'Pessac-Léognan': { region: 'Bordeaux', type: 'Rouge' },
+    'Saint-Émilion': { region: 'Bordeaux', type: 'Rouge' },
+    'Pomerol': { region: 'Bordeaux', type: 'Rouge' },
+    'Haut-Médoc': { region: 'Bordeaux', type: 'Rouge' },
+    'Sauternes': { region: 'Bordeaux', type: 'Blanc' },
+    // Bourgogne
+    'Chablis': { region: 'Bourgogne', type: 'Blanc' },
+    'Meursault': { region: 'Bourgogne', type: 'Blanc' },
+    'Puligny-Montrachet': { region: 'Bourgogne', type: 'Blanc' },
+    'Gevrey-Chambertin': { region: 'Bourgogne', type: 'Rouge' },
+    'Nuits-Saint-Georges': { region: 'Bourgogne', type: 'Rouge' },
+    'Pommard': { region: 'Bourgogne', type: 'Rouge' },
+    'Beaune': { region: 'Bourgogne', type: 'Rouge' },
+    'Pouilly-Fuissé': { region: 'Bourgogne', type: 'Blanc' },
+    // Rhône
+    'Châteauneuf-du-Pape': { region: 'Vallée du Rhône', type: 'Rouge' },
+    'Côte-Rôtie': { region: 'Vallée du Rhône', type: 'Rouge' },
+    'Hermitage': { region: 'Vallée du Rhône', type: 'Rouge' },
+    'Saint-Joseph': { region: 'Vallée du Rhône', type: 'Rouge' },
+    'Crozes-Hermitage': { region: 'Vallée du Rhône', type: 'Rouge' },
+    'Gigondas': { region: 'Vallée du Rhône', type: 'Rouge' },
+    'Condrieu': { region: 'Vallée du Rhône', type: 'Blanc' },
+    // Loire & Alsace
+    'Sancerre': { region: 'Loire', type: 'Blanc' },
+    'Pouilly-Fumé': { region: 'Loire', type: 'Blanc' },
+    'Chinon': { region: 'Loire', type: 'Rouge' },
+    'Alsace Riesling': { region: 'Alsace', type: 'Blanc' },
+    'Alsace Gewurztraminer': { region: 'Alsace', type: 'Blanc' },
+    // Champagne
+    'Champagne Brut': { region: 'Champagne', type: 'Champagne' },
+    'Champagne Blanc de Blancs': { region: 'Champagne', type: 'Champagne' },
+    'Champagne Rosé': { region: 'Champagne', type: 'Champagne' },
+    'Champagne Millésimé': { region: 'Champagne', type: 'Champagne' },
+    // Spiritueux
+    'Bas-Armagnac': { region: 'Sud-Ouest (Gascogne)', type: 'Spiritueux' },
+    'Armagnac Ténarèze': { region: 'Sud-Ouest (Gascogne)', type: 'Spiritueux' },
+    'Haut-Armagnac': { region: 'Sud-Ouest (Gascogne)', type: 'Spiritueux' },
+    'Cognac XO': { region: 'Charente', type: 'Spiritueux' },
+    'Whisky Single Malt': { region: 'Écosse / France', type: 'Spiritueux' },
+    'Rhum Vieux Agricole': { region: 'Martinique / Guadeloupe', type: 'Spiritueux' },
+    'Calvados': { region: 'Normandie', type: 'Spiritueux' },
+    // Bières
+    'IPA Artisanale': { region: 'Craft Beer', type: 'Bière' },
+    'Triple': { region: 'Belgique / France', type: 'Bière' },
+    'Stout': { region: 'Craft Beer', type: 'Bière' },
+    'Blonde Artisanale': { region: 'France', type: 'Bière' }
+};
+
+function initAppellationShortcuts() {
+    const dataList = document.getElementById('appellationSuggestions');
+    if (dataList && dataList.children.length === 0) {
+        dataList.innerHTML = Object.keys(APPELLATION_DATABASE).map(app => `<option value="${app}">`).join('');
+    }
+
+    const typeSelect = document.getElementById('f_type');
+    const updateChips = () => {
+        const curType = typeSelect ? typeSelect.value : 'Rouge';
+        const container = document.getElementById('appellationShortcuts');
+        if (!container) return;
+
+        let matches = Object.entries(APPELLATION_DATABASE).filter(([_, info]) => info.type === curType);
+        if (matches.length === 0) matches = Object.entries(APPELLATION_DATABASE).slice(0, 8);
+
+        container.innerHTML = matches.slice(0, 8).map(([name, info]) => `
+            <button type="button" class="app-chip" data-app="${name}" data-region="${info.region}">
+                ${name}
+            </button>
+        `).join('');
+
+        container.querySelectorAll('.app-chip').forEach(chip => {
+            chip.addEventListener('click', (e) => {
+                e.preventDefault();
+                const app = chip.dataset.app;
+                const reg = chip.dataset.region;
+                const appInput = document.getElementById('f_appellation');
+                const regInput = document.getElementById('f_region');
+                if (appInput) {
+                    appInput.value = app;
+                    appInput.dispatchEvent(new Event('input'));
+                }
+                if (regInput && reg) {
+                    regInput.value = reg;
+                }
+            });
+        });
+    };
+
+    if (typeSelect && !typeSelect._appBound) {
+        typeSelect._appBound = true;
+        typeSelect.addEventListener('change', updateChips);
+    }
+    updateChips();
+}
+window.initAppellationShortcuts = initAppellationShortcuts;
+
 function clearWineForm() {
     document.getElementById('f_nom').value = '';
+    initAppellationShortcuts();
     document.getElementById('f_appellation').value = '';
     document.getElementById('f_millesime').value = new Date().getFullYear() - 2;
     document.getElementById('f_type').value = 'Rouge';
@@ -916,6 +1025,7 @@ async function handleWineSubmit(shouldClose) {
             document.getElementById('modalAdd').classList.add('hidden');
         } else {
             document.getElementById('f_nom').value = '';
+    initAppellationShortcuts();
             document.getElementById('f_nom').focus();
         }
     } catch (err) {

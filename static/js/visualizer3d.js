@@ -1207,3 +1207,55 @@ window.quickAddAtSlot = quickAddAtSlot;
 window.open2DBlockViewer = open2DBlockViewer;
 window.switch2DBlockZone = switch2DBlockZone;
 window.select2DSlot = select2DSlot;
+
+// ── Navigation Caméra 3D fluide pour mobile & desktop ──
+let camAnimId = null;
+function focus3DCamera(viewName, btnEl) {
+    if (!STATE.scene.camera || !STATE.scene.controls) return;
+    const cam = STATE.scene.camera;
+    const ctrl = STATE.scene.controls;
+
+    if (btnEl) {
+        document.querySelectorAll('.btn-c3d-nav').forEach(b => b.classList.remove('active'));
+        btnEl.classList.add('active');
+    }
+
+    const views = {
+        overview: { cam: { x: 0, y: 30, z: 40 }, target: { x: 0, y: 8, z: -6 } },
+        casiers:  { cam: { x: 0, y: 15, z: -8 },  target: { x: 0, y: 12, z: -32 } },
+        cartons:  { cam: { x: -12, y: 12, z: 24 }, target: { x: -16, y: 4, z: 12 } },
+        chariot:  { cam: { x: 12, y: 10, z: 22 },  target: { x: 16, y: 5, z: 12 } },
+        armoire:  { cam: { x: 20, y: 14, z: 2 },   target: { x: 26, y: 10, z: -8 } }
+    };
+
+    const targetView = views[viewName] || views.overview;
+    if (camAnimId) cancelAnimationFrame(camAnimId);
+
+    let progress = 0;
+    const startCam = { x: cam.position.x, y: cam.position.y, z: cam.position.z };
+    const startTarget = { x: ctrl.target.x, y: ctrl.target.y, z: ctrl.target.z };
+
+    function step() {
+        progress += 0.065;
+        if (progress > 1) progress = 1;
+        const ease = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+        cam.position.set(
+            startCam.x + (targetView.cam.x - startCam.x) * ease,
+            startCam.y + (targetView.cam.y - startCam.y) * ease,
+            startCam.z + (targetView.cam.z - startCam.z) * ease
+        );
+        ctrl.target.set(
+            startTarget.x + (targetView.target.x - startTarget.x) * ease,
+            startTarget.y + (targetView.target.y - startTarget.y) * ease,
+            startTarget.z + (targetView.target.z - startTarget.z) * ease
+        );
+        ctrl.update();
+        if (progress < 1) {
+            camAnimId = requestAnimationFrame(step);
+        } else {
+            camAnimId = null;
+        }
+    }
+    step();
+}
+window.focus3DCamera = focus3DCamera;
