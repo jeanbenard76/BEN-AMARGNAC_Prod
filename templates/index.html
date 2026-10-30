@@ -820,40 +820,38 @@
 <!-- 4. MODALE VUE 2D DU BLOC DE STOCKAGE (INTERACTION 3D -> 2D) -->
 <div id="slotModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="blockViewerTitle">
     <div class="modal-box block-modal">
-        <!-- En-tête -->
-        <div class="modal-header" style="padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #fff;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <div id="blockViewerIcon" style="width: 40px; height: 40px; border-radius: 10px; background: rgba(128,0,32,0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 20px;">
-                    <i class="fas fa-th"></i>
+        <!-- Poignée tactile mobile -->
+        <div class="sheet-drag-handle"></div>
+
+        <!-- En-tête épuré et compact -->
+        <div class="modal-header block-modal-header">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div id="blockViewerIcon" class="block-viewer-avatar">
+                    <i class="fas fa-boxes"></i>
                 </div>
                 <div>
-                    <h2 id="blockViewerTitle" style="font-size: 18px; font-weight: 700; margin: 0; color: var(--primary); font-family: 'Playfair Display', serif;">Plan 2D du Bloc</h2>
-                    <div id="blockViewerSubtitle" style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Sélectionnez un casier ou un carton pour inspecter les bouteilles</div>
+                    <h2 id="blockViewerTitle" style="font-size: 16px; font-weight: 700; margin: 0; color: var(--primary); font-family: 'Playfair Display', serif;">Plan de la Cave</h2>
+                    <div id="blockViewerSubtitle" style="font-size: 11px; color: var(--text-muted); margin-top: 1px;">Touchez une caisse ou un casier pour voir son contenu</div>
                 </div>
             </div>
             <button type="button" class="close-modal-btn-x" onclick="closeModalSlot()" aria-label="Fermer">×</button>
         </div>
 
-        <!-- Onglets des espaces de stockage -->
+        <!-- Onglets des espaces de stockage (pilules défilantes) -->
         <div class="block-zone-tabs" id="blockZoneTabs">
-            <!-- Rempli dynamiquement -->
-        </div>
-
-        <!-- Résumé & Statistiques du bloc -->
-        <div class="block-summary-bar" id="blockSummaryBar">
             <!-- Rempli dynamiquement -->
         </div>
 
         <!-- Corps scrollable avec le schéma 2D + détail du casier cliqué -->
         <div class="block-modal-body">
-            <!-- Schéma 2D -->
+            <!-- Schéma 2D clair et aéré -->
             <div class="block-2d-canvas-container">
                 <div id="block2DGrid" class="block-2d-grid">
                     <!-- Généré dynamiquement selon le type de zone -->
                 </div>
             </div>
 
-            <!-- Détail de l'emplacement sélectionné -->
+            <!-- Détail compact de l'emplacement sélectionné -->
             <div class="block-slot-detail-panel" id="blockSlotDetailPanel">
                 <!-- Rempli dynamiquement -->
             </div>

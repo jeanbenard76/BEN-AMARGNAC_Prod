@@ -748,6 +748,38 @@ function onCanvasClick(e, container) {
     }
 }
 
+// ── Détection de la sélection par défaut pour une zone ──
+function getDefaultSelectionForZone(zone) {
+    if (!zone) return { col: 1, lig: 1, carton_label: null, type: 'slot' };
+    const stock = STATE.inventory.filter(b => b.statut === 'En cave' && (b.zone_id === zone.id || (!b.zone_id && zone.id === STATE.zones[0]?.id)));
+
+    if (zone.type === 'cartons') {
+        const firstFilled = stock.find(b => b.carton_label || b.nom);
+        return {
+            col: 1,
+            lig: 1,
+            carton_label: firstFilled ? (firstFilled.carton_label || firstFilled.nom) : null,
+            type: 'carton'
+        };
+    }
+    if (zone.type === 'armoire' || zone.type === 'chariot') {
+        const firstFilled = stock.find(b => b.lig || b.emplacement?.lig);
+        return {
+            col: 1,
+            lig: firstFilled ? Number(firstFilled.lig || firstFilled.emplacement?.lig) : 1,
+            carton_label: null,
+            type: zone.type === 'armoire' ? 'clayette' : 'chariot'
+        };
+    }
+    const firstFilled = stock.find(b => b.col || b.emplacement?.col);
+    return {
+        col: firstFilled ? Number(firstFilled.col || firstFilled.emplacement?.col) : 1,
+        lig: firstFilled ? Number(firstFilled.lig || firstFilled.emplacement?.lig) : 1,
+        carton_label: null,
+        type: 'slot'
+    };
+}
+
 // ── Ouverture & Affichage du Bloc en 2D Complet ──
 function open2DBlockViewer(zoneId, selection) {
     const defaultZone = (STATE.zones && STATE.zones.length > 0) ? STATE.zones[0] : null;
@@ -757,12 +789,7 @@ function open2DBlockViewer(zoneId, selection) {
         current2DSelection = { ...selection };
     } else {
         const z = STATE.getZoneById(current2DZoneId) || defaultZone;
-        current2DSelection = {
-            col: 1,
-            lig: 1,
-            carton_label: null,
-            type: z ? (z.type === 'cartons' ? 'carton' : (z.type === 'armoire' ? 'clayette' : 'slot')) : 'slot'
-        };
+        current2DSelection = getDefaultSelectionForZone(z);
     }
 
     render2DBlockModal();
@@ -774,6 +801,8 @@ function render2DBlockModal() {
     const zone = STATE.getZoneById(current2DZoneId) || STATE.zones[0];
     if (!zone) return;
 
+    const zoneStock = STATE.inventory.filter(b => b.statut === "En cave" && (b.zone_id === zone.id || (!b.zone_id && zone.id === STATE.zones[0]?.id)));
+
     // 1. Titre et icône du bloc
     const iconEl = document.getElementById('blockViewerIcon');
     const titleEl = document.getElementById('blockViewerTitle');
@@ -782,21 +811,14 @@ function render2DBlockModal() {
     const typeIcons = {
         losange: '<i class="fas fa-cubes-stacked"></i>',
         etagere: '<i class="fas fa-layer-group"></i>',
-        cartons: '<i class="fas fa-boxes-stacked"></i>',
+        cartons: '<i class="fas fa-boxes"></i>',
         armoire: '<i class="fas fa-temperature-low"></i>',
         chariot: '<i class="fas fa-cocktail"></i>'
     };
-    const typeNames = {
-        losange: 'Casiers Losanges',
-        etagere: 'Étagères Murales',
-        cartons: 'Caisses Bois Brutes au Sol',
-        armoire: 'Armoire Réfrigérée EuroCave',
-        chariot: 'Chariot à Spiritueux & Bières'
-    };
 
     if (iconEl) iconEl.innerHTML = typeIcons[zone.type] || '<i class="fas fa-th"></i>';
-    if (titleEl) titleEl.textContent = `${zone.name} (${typeNames[zone.type] || 'Espace'})`;
-    if (subEl) subEl.textContent = "Cliquez sur un casier ou un carton pour voir et gérer son contenu en direct.";
+    if (titleEl) titleEl.textContent = zone.name;
+    if (subEl) subEl.textContent = `${zoneStock.length} flacon${zoneStock.length > 1 ? 's' : ''} en réserve dans cet espace`;
 
     // 2. Onglets pour basculer facilement entre les différents blocs
     const tabsEl = document.getElementById('blockZoneTabs');
@@ -809,46 +831,13 @@ function render2DBlockModal() {
             return `
                 <button type="button" class="block-zone-tab ${isActive ? 'active' : ''}" onclick="switch2DBlockZone(${z.id})">
                     ${icon} <span>${escHtml(z.name)}</span>
-                    <span style="font-weight:700; opacity:0.85; margin-left:4px;">(${count} bll.)</span>
+                    <span class="tab-count-badge">${count}</span>
                 </button>
             `;
         }).join('');
     }
 
-    // 3. Barre de statistiques du bloc (taux d'occupation, etc.)
-    const summaryEl = document.getElementById('blockSummaryBar');
-    const zoneStock = STATE.inventory.filter(b => b.statut === "En cave" && (b.zone_id === zone.id || (!b.zone_id && zone.id === STATE.zones[0]?.id)));
-
-    if (summaryEl) {
-        let statsText = '';
-        if (zone.type === 'cartons') {
-            const cartonNames = [...new Set(zoneStock.map(b => b.carton_label || b.nom).filter(Boolean))];
-            statsText = `<span><strong>${cartonNames.length}</strong> caisses en bois scellées • <strong>${zoneStock.length}</strong> bouteilles</span>`;
-        } else if (zone.type === 'armoire') {
-            const nbClayettes = zone.rows || 6;
-            statsText = `<span><strong>${nbClayettes}</strong> clayettes • <strong>${zoneStock.length}</strong> bouteilles en conservation</span>`;
-        } else if (zone.type === 'chariot') {
-            statsText = `<span><strong>2</strong> plateaux de dégustation • <strong>${zoneStock.length}</strong> flacons (Spiritueux & Bières)</span>`;
-        } else {
-            const totalSlots = (zone.columns || 12) * (zone.rows || 3);
-            const usedCoords = new Set(zoneStock.map(b => `${b.emplacement?.col || b.col}_${b.emplacement?.lig || b.lig}`)).size;
-            const pct = Math.round((usedCoords / totalSlots) * 100) || 0;
-            statsText = `<span><strong>${usedCoords} / ${totalSlots}</strong> casiers occupés (${pct}%) • <strong>${zoneStock.length}</strong> bouteilles</span>`;
-        }
-
-        const legendHtml = `
-            <div style="display: flex; gap: 10px; align-items: center; font-size: 11px; flex-wrap: wrap;">
-                <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#800020;"></span> Rouge</span>
-                <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#854d0e;"></span> Blanc</span>
-                <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#9d174d;"></span> Rosé</span>
-                <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#c9a84c;"></span> Champagne</span>
-                <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;border:1px dashed #9ca3af;background:transparent;"></span> Vide</span>
-            </div>
-        `;
-        summaryEl.innerHTML = `${statsText} ${legendHtml}`;
-    }
-
-    // 4. Génération de la grille 2D
+    // 3. Génération de la grille 2D
     const gridEl = document.getElementById('block2DGrid');
     if (!gridEl) return;
 
@@ -862,7 +851,7 @@ function render2DBlockModal() {
         render2DRackBlock(gridEl, zone, zoneStock);
     }
 
-    // 5. Affichage du détail de l'emplacement sélectionné
+    // 4. Affichage du détail de l'emplacement sélectionné
     renderSelectedSlotDetail(zone, current2DSelection);
 }
 
@@ -909,44 +898,40 @@ function render2DRackBlock(gridEl, zone, zoneStock) {
     }
 }
 
-// ── Grille 2D pour Caisses en Bois Brutes Non Ouvertes au Sol ──
+// ── Grille 2D pour Caisses en Bois Épurées & Élégantes ──
 function render2DCartonsBlock(gridEl, zone, zoneStock) {
     gridEl.className = 'carton-2d-grid';
-    gridEl.style.gridTemplateColumns = `repeat(auto-fill, minmax(190px, 1fr))`;
     gridEl.innerHTML = '';
 
     // Regrouper par carton_label ou domaine
     const cartonsMap = {};
     zoneStock.forEach(b => {
-        const label = b.carton_label || b.nom || 'Caisse Bois Scellée';
+        const label = b.carton_label || b.nom || 'Caisse';
         if (!cartonsMap[label]) cartonsMap[label] = [];
         cartonsMap[label].push(b);
     });
 
-    // Afficher chaque caisse fermée avec estampillage au fer rouge
+    // Afficher chaque caisse
     Object.entries(cartonsMap).forEach(([label, wines]) => {
         const isSelected = (current2DSelection.carton_label === label);
         const dominant = wines[0]?.type || 'Rouge';
         const millesime = wines[0]?.millesime || '';
-        const appellation = wines[0]?.appellation || 'Grand Vin de Propriété';
+        const appellation = wines[0]?.appellation || '';
+        const badgeClass = WINE_COLORS[dominant]?.css || 'badge-rouge';
 
         const box = document.createElement('div');
         box.className = `carton-2d-crate ${isSelected ? 'selected' : ''}`;
 
         box.innerHTML = `
-            <div class="crate-brand-header">
-                <span>⚜ Grand Vin ⚜</span>
-                <span>Caisse Scellée</span>
-            </div>
-            <div class="crate-brand-title">
-                ${escHtml(label)}
-            </div>
-            <div style="text-align:center; font-size:10px; font-weight:700; color:#4a2810; opacity:0.85; margin:2px 0;">
-                ${escHtml(appellation)}${millesime ? ' • ' + millesime : ''}
+            <div>
+                <div class="crate-brand-title" title="${escHtml(label)}">${escHtml(label)}</div>
+                <div class="crate-brand-subtitle">${escHtml(appellation)}${millesime ? ' • ' + millesime : ''}</div>
             </div>
             <div class="crate-brand-footer">
-                <span><i class="fas fa-lock" style="font-size:9px; margin-right:3px;"></i> Non ouverte</span>
-                <span style="font-weight:800; font-size:11px;">${wines.length} bll. (${dominant})</span>
+                <span style="font-size:10px; font-weight:700; color:#3b2010;">
+                    <i class="fas fa-wine-bottle" style="font-size:9px; color:var(--primary); margin-right:3px;"></i>${wines.length} bll.
+                </span>
+                <span class="badge ${badgeClass}" style="font-size:9px; padding:2px 6px;">${dominant}</span>
             </div>
         `;
 
@@ -961,9 +946,8 @@ function render2DCartonsBlock(gridEl, zone, zoneStock) {
     const addBox = document.createElement('div');
     addBox.className = 'crate-empty-add';
     addBox.innerHTML = `
-        <i class="fas fa-plus-circle" style="font-size:26px; margin-bottom:8px; opacity:0.75;"></i>
-        <div style="font-size:13px; font-weight:700;">Nouvelle Caisse</div>
-        <div style="font-size:11px; opacity:0.8; margin-top:2px;">(1 caisse brute par domaine)</div>
+        <i class="fas fa-plus" style="font-size:16px; margin-bottom:4px; color:var(--primary);"></i>
+        <div style="font-size:11px; font-weight:700;">Nouvelle Caisse</div>
     `;
     addBox.onclick = () => {
         quickAddAtSlot(zone.id, 1, 1, '');
@@ -1071,12 +1055,7 @@ function select2DSlot(zone, col, lig, carton_label, type) {
 function switch2DBlockZone(zoneId) {
     current2DZoneId = zoneId;
     const z = STATE.getZoneById(zoneId);
-    current2DSelection = {
-        col: 1,
-        lig: 1,
-        carton_label: null,
-        type: z ? (z.type === 'cartons' ? 'carton' : (z.type === 'armoire' ? 'clayette' : 'slot')) : 'slot'
-    };
+    current2DSelection = getDefaultSelectionForZone(z);
     render2DBlockModal();
 }
 
@@ -1109,12 +1088,10 @@ function renderSelectedSlotDetail(zone, sel) {
     let contentHtml = '';
     if (wines.length === 0) {
         contentHtml = `
-            <div style="text-align: center; padding: 24px 12px; color: #64748b;">
-                <i class="fas fa-wine-bottle" style="font-size: 32px; margin-bottom: 8px; opacity: 0.3; display: block;"></i>
-                <div style="font-weight: 600; font-size: 14px;">Emplacement vide</div>
-                <p style="font-size: 12px; margin: 4px 0 12px 0;">Aucune bouteille n'est rangée dans cet emplacement pour le moment.</p>
-                <button type="button" class="btn-primary" style="font-size: 12px; padding: 6px 14px;" onclick="quickAddAtSlot(${zone.id}, ${sel.col}, ${sel.lig}, '${sel.carton_label || ''}')">
-                    <i class="fas fa-plus"></i> Ranger une bouteille ici
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:#f8fafc; border-radius:8px; border:1px dashed #cbd5e1;">
+                <span style="font-size:12px; color:#64748b;"><i class="fas fa-box-open" style="margin-right:6px; opacity:0.6;"></i> Emplacement libre</span>
+                <button type="button" class="btn-primary" style="font-size:11px; padding:6px 12px;" onclick="quickAddAtSlot(${zone.id}, ${sel.col}, ${sel.lig}, '${sel.carton_label || ''}')">
+                    <i class="fas fa-plus"></i> Ranger un vin
                 </button>
             </div>
         `;
