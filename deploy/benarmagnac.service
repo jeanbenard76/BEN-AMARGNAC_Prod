@@ -1,0 +1,17 @@
+[Unit]
+Description=Ben'armagnac Wine Cellar Management Service
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/benarmagnac
+Environment="PATH=/var/www/benarmagnac/venv/bin"
+EnvironmentFile=/var/www/benarmagnac/.env
+ExecStart=/var/www/benarmagnac/venv/bin/gunicorn --workers 4 --bind 127.0.0.1:5000 --timeout 120 app:app
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+

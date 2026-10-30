@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="ben'armagnac.png">
+
+<title>BEN'ARMAGNAC</title>
+
+<!-- Bibliothèques Externes -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+    /* --- PALETTE COULEURS VINS --- */
+    --col-rouge: #800020;     /* Bordeaux */
+    --col-rouge-bg: #f5e6e8;
+    
+    --col-blanc: #eab308;     /* Jaune Or */
+    --col-blanc-bg: #fefce8;
+    
+    --col-rose: #f472b6;      /* Rose */
+    --col-rose-bg: #fdf2f8;
+    
+    --col-champagne: #15803d; /* Vert Bouteille */
+    --col-champagne-bg: #f0fdf4;
+
+    --col-cidre: #e3ea5e;     /* Jaune Cidre */
+    --col-cidre-bg: #faffb3;
+
+    /* --- UI GENERALE --- */
+    --primary: #800020; 
+    --primary-dark: #5c0016;
+    --accent: #d4af37;
+    --bg-dark: #121418;
+    --bg-light: #f3f4f6;
+    --white: #ffffff;
+    --text-main: #1f2937;
+    --text-muted: #6b7280;
+    --border: #e5e7eb;
+    --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.05);
+    --radius: 12px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-light);
+    color: var(--text-main);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* --- SIDEBAR --- */
+.sidebar {
+    width: 260px;
+    background-color: var(--bg-dark);
+    color: #9ca3af;
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    flex-shrink: 0;
+}
+
+.logo {
+    color: var(--white);
+    font-family: 'Playfair Display', serif;
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 40px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.logo i { color: var(--primary); }
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.avatar { width: 40px; height: 40px; background: rgba(255,255,255,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--accent); }
+.user-info { display: flex; flex-direction: column; }
+.user-info .name { color: var(--white); font-weight: 500; font-size: 14px; }
+.user-info .role { font-size: 12px; color: #6b7280; }
+
+.nav-links { list-style: none; flex-grow: 1; }
+.nav-links li {
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 500;
+}
+.nav-links li:hover { background: rgba(255,255,255,0.05); color: var(--white); }
+.nav-links li.active { background: var(--primary); color: var(--white); box-shadow: 0 4px 12px rgba(128, 0, 32, 0.4); }
+
+.sidebar-footer { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+
+/* --- CONTENT --- */
+.content { flex-grow: 1; padding: 32px; overflow-y: auto; }
+.view { display: none; animation: fadeIn 0.4s ease; }
+.view.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.view-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 32px;
+}
+
+h1 { font-family: 'Playfair Display', serif; font-size: 32px; color: #111827; margin-bottom: 4px; }
+.date-indicator { font-size: 14px; color: var(--text-muted); }
+
+/* Buttons */
+.btn-primary {
+    background-color: var(--primary); color: white; border: none;
+    padding: 10px 20px; border-radius: 8px; font-weight: 500; cursor: pointer;
+    display: flex; align-items: center; gap: 8px; transition: 0.2s;
+    box-shadow: 0 4px 6px rgba(128,0,0,0.2);
+}
+.btn-primary:hover { background-color: var(--primary-dark); transform: translateY(-1px); }
+
+.btn-ghost {
+    background: transparent; border: 1px solid rgba(255,255,255,0.2); color: inherit;
+    padding: 8px 16px; border-radius: 6px; cursor: pointer; text-align: center; font-size: 13px;
+}
+.btn-ghost:hover { border-color: var(--white); color: var(--white); }
+
+/* --- DASHBOARD --- */
+.kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 32px; }
+.card { background: var(--white); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); }
+.kpi { display: flex; align-items: center; gap: 20px; }
+.kpi-icon { width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: white; }
+.bg-red { background: linear-gradient(135deg, #800020, #a31538); }
+.bg-gold { background: linear-gradient(135deg, #d4af37, #f3d068); }
+.bg-green { background: linear-gradient(135deg, #10b981, #34d399); }
+
+.kpi-data { display: flex; flex-direction: column; }
+.kpi-label { font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+.kpi-value { font-size: 28px; font-weight: 700; color: #111827; font-family: 'Playfair Display', serif; }
+
+.charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+.chart-container { min-height: 350px; display: flex; flex-direction: column; }
+.card-header h3 { font-size: 18px; font-weight: 600; color: #374151; display: flex; align-items: center; gap: 10px; }
+.card-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+.canvas-wrapper { flex-grow: 1; position: relative; margin-top: 15px; }
+
+/* --- INVENTORY --- */
+.toolbar { display: flex; justify-content: space-between; padding: 16px; margin-bottom: 24px; align-items: center; }
+.search-group { position: relative; width: 300px; }
+.search-group i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9ca3af; }
+.search-group input { width: 100%; padding: 10px 10px 10px 36px; border: 1px solid var(--border); border-radius: 8px; outline: none; background: #f9fafb; transition: 0.2s; }
+.search-group input:focus { background: white; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(128,0,32,0.1); }
+
+.filters-group { display: flex; gap: 12px; }
+select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: white; outline: none; color: #374151; cursor: pointer; }
+
+.table-wrapper { padding: 0; overflow: hidden; background: white; border-radius: 12px; }
+table { width: 100%; border-collapse: collapse; }
+
+th { text-align: left; padding: 18px 24px; background: #f9fafb; font-size: 12px; font-weight: 700; color: #4b5563; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid var(--border); }
+
+/* Accordéon */
+.parent-row { cursor: pointer; transition: background 0.15s; border-bottom: 1px solid var(--border); }
+.parent-row:hover { background-color: #f8fafc; }
+.parent-row td { padding: 16px 24px; color: #111827; font-weight: 500; white-space: nowrap; }
+.count-badge { background: var(--primary); color: white; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 700; display: inline-block; }
+.parent-row.expanded { background-color: #f3f4f6; border-bottom: none; }
+.parent-row .fa-chevron-right { transition: transform 0.3s; color: #9ca3af; font-size: 12px; }
+.parent-row.expanded .fa-chevron-right { transform: rotate(90deg); color: var(--primary); }
+
+.child-row { display: none; background-color: #f9fafb; }
+.child-row.open { display: table-row; animation: fadeInRow 0.3s ease; }
+@keyframes fadeInRow { from { opacity: 0; } to { opacity: 1; } }
+
+.detail-table { width: 95%; margin: 10px auto 20px auto; border-collapse: collapse; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.detail-table td { padding: 10px 15px; background: white; border-bottom: 1px solid #e5e7eb; font-size: 13px; color: #4b5563; }
+.detail-table tr:last-child td { border-bottom: none; }
+.detail-header { font-weight: 600; color: #9ca3af; font-size: 11px; text-transform: uppercase; background: #fff !important; }
+.text-right { text-align: right; }
+
+.action-btn { background: none; border: none; cursor: pointer; padding: 6px; border-radius: 4px; color: #9ca3af; transition: 0.2s; margin-left: 4px; font-size: 16px; }
+.action-btn:hover { background: #f3f4f6; color: var(--primary); }
+
+.appellation-tag {
+    font-size: 11px;
+    color: #6b7280;
+    font-weight: 400;
+    margin-left: 5px;
+    font-style: italic;
+}
+
+/* --- COULEURS UNIFIÉES (Badges & Dots) --- */
+.badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; border: 1px solid transparent; }
+
+.badge-rouge { background-color: var(--col-rouge-bg); color: var(--col-rouge); border-color: rgba(128,0,32,0.1); }
+.badge-blanc { background-color: var(--col-blanc-bg); color: var(--col-blanc); border-color: rgba(234,179,8,0.1); }
+.badge-rose  { background-color: var(--col-rose-bg);  color: var(--col-rose);  border-color: rgba(244,114,182,0.1); }
+.badge-champagne { background-color: var(--col-champagne-bg); color: var(--col-champagne); border-color: rgba(21,128,61,0.1); }
+.badge-cidre { background-color: var(--col-cidre-bg); color: var(--col-cidre); border-color: rgba(128,128,0,0.1); }
+
+/* Dots pour Légendes */
+.dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 6px; transform: translateY(1px); }
+.dot.rouge { background: var(--col-rouge); box-shadow: 0 0 4px var(--col-rouge); }
+.dot.blanc { background: var(--col-blanc); box-shadow: 0 0 4px var(--col-blanc); }
+.dot.rose  { background: var(--col-rose);  box-shadow: 0 0 4px var(--col-rose); }
+.dot.champagne { background: var(--col-champagne); box-shadow: 0 0 4px var(--col-champagne); }
+.dot.cidre { background: var(--col-cidre); box-shadow: 0 0 4px var(--col-cidre); }
+
+/* --- 3D & MAP --- */
+.map-frame { height: 600px; width: 100%; padding: 0; overflow: hidden; position: relative; border-radius: var(--radius); }
+#mapContainer { width: 100%; height: 100%; z-index: 1; }
+
+.visualizer-container { height: 600px; background: linear-gradient(to bottom, #1a1a1a, #2d1b15); position: relative; border-radius: var(--radius); overflow: hidden; }
+#canvas-container { width: 100%; height: 100%; min-height: 100%; }
+
+.visualizer-controls { position: absolute; bottom: 20px; left: 20px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(5px); padding: 12px 20px; border-radius: 30px; display: flex; gap: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 10; font-size: 13px; font-weight: 600; color: var(--text-main); }
+
+/* Popup Slot */
+.slot-popup-content { max-height: 400px; overflow-y: auto; padding-right: 5px; }
+.slot-popup-content::-webkit-scrollbar { width: 6px; }
+.slot-popup-content::-webkit-scrollbar-thumb { background-color: #e5e7eb; border-radius: 10px; }
+
+.wine-item { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid #f3f4f6; transition: background 0.2s; }
+.wine-item:last-child { border-bottom: none; }
+.wine-info h4 { font-family: 'Playfair Display', serif; font-size: 16px; margin-bottom: 4px; color: #111827; }
+.wine-info p { font-size: 13px; color: #6b7280; display: flex; gap: 8px; align-items: center; }
+.wine-qty { background: var(--bg-light); padding: 6px 12px; border-radius: 8px; font-weight: 700; color: var(--primary); font-size: 14px; min-width: 40px; text-align: center; }
+
+/* Map Legend */
+.map-legend-overlay { position: absolute; top: 20px; right: 20px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1000; font-size: 12px; }
+.map-legend-item { display: flex; align-items: center; margin-bottom: 6px; }
+.map-legend-item:last-child { margin-bottom: 0; }
+
+/* Modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+.modal-overlay.hidden { display: none; }
+.modal-box { background: white; width: 800px; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); animation: slideUp 0.3s ease-out; }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.modal-header { padding: 20px 30px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #f9fafb; }
+.modal-header h2 { font-size: 20px; margin: 0; font-family: 'Inter', sans-serif; font-weight: 600; }
+.close-modal { background: none; border: none; font-size: 20px; cursor: pointer; color: #9ca3af; }
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+.form-column { padding: 30px; }
+.form-column:first-child { border-right: 1px solid var(--border); }
+.form-column h3 { font-size: 14px; text-transform: uppercase; color: var(--primary); margin-bottom: 20px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+
+.modal-footer { padding: 20px 30px; background: #f9fafb; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 12px; }
+
+.input-group { margin-bottom: 16px; }
+.input-group label { display: block; font-size: 13px; font-weight: 500; color: #4b5563; margin-bottom: 6px; }
+.input-group input, .input-group select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; outline: none; transition: 0.2s; }
+.input-group input:focus, .input-group select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(128,0,32,0.1); }
+
+.row { display: flex; gap: 16px; }
+.row .input-group { flex: 1; }
+.separator { height: 1px; background: var(--border); margin: 24px 0; }
+.highlight-bg { background: #fef2f2; padding: 15px; border-radius: 8px; border: 1px dashed var(--primary); }
+
+@media (max-width: 1024px) {
+    .sidebar { width: 80px; padding: 20px 10px; align-items: center; }
+    .logo span, .user-info, .nav-links li span, .sidebar-footer { display: none; }
+    .nav-links li { justify-content: center; padding: 15px; }
+    .nav-links li i { margin: 0; font-size: 20px; }
+    .content { padding: 20px; }
+    .charts-grid, .kpi-grid { grid-template-columns: 1fr; }
+    .modal-box { width: 95%; max-height: 90vh; overflow-y: auto; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-column:first-child { border-right: none; border-bottom: 1px solid var(--border); }
+}
+</style>
+</head>
+<body>
+<!-- SIDEBAR NAVIGATION -->
+<nav class="sidebar">
+    <div class="logo">
+        <i class="fas fa-wine-bottle"></i> BEN'ARMAGNAC
+    </div>
+    
+    <div class="user-profile">
+        <div class="avatar"><i class="fas fa-user"></i></div>
+        <div class="user-info">
+            <span class="name">Marc BENARD</span>
+            <span class="role">Sommelier</span>
+        </div>
+    </div>
+
+    <ul class="nav-links">
+        <li class="active" data-target="dashboard">
+            <i class="fas fa-chart-line"></i> <span>Tableau de bord</span>
+        </li>
+        <li data-target="inventory">
+            <i class="fas fa-list-ul"></i> <span>Livre de Cave</span>
+        </li>
+        <li data-target="cave3d">
+            <i class="fas fa-cubes"></i> <span>Visite 3D</span>
+        </li>
+        <li data-target="map">
+            <i class="fas fa-map-marked-alt"></i> <span>Carte Vignobles</span>
+        </li>
+    </ul>
+
+    <div class="sidebar-footer">
+        <button id="btnExport" class="btn-ghost"><i class="fas fa-download"></i> Sauvegarder</button>
+        <label for="fileImport" class="btn-ghost" style="display: block; width: 100%; margin-top: 5px;"><i class="fas fa-upload"></i> Restaurer</label>
+        <input type="file" id="fileImport" accept=".json" style="display:none;">
+    </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main class="content">
+    
+    <!-- VUE: Dashboard -->
+    <section id="dashboard" class="view active">
+        <div class="view-header">
+            <div>
+                <h1>Tableau de bord</h1>
+                <p class="date-indicator">Aujourd'hui : <span id="currentDateDisplay"></span></p>
+            </div>
+            <button class="btn-primary" onclick="openWineModal()">
+                <i class="fas fa-plus"></i> Ajouter un vin
+            </button>
+        </div>
+        
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+            <div class="card kpi">
+                <div class="kpi-icon bg-red"><i class="fas fa-wine-glass"></i></div>
+                <div class="kpi-data">
+                    <span class="kpi-label">Stock Total</span>
+                    <span class="kpi-value" id="kpi-count">0</span>
+                </div>
+            </div>
+            <div class="card kpi">
+                <div class="kpi-icon bg-gold"><i class="fas fa-coins"></i></div>
+                <div class="kpi-data">
+                    <span class="kpi-label">Valorisation</span>
+                    <span class="kpi-value" id="kpi-value">0 €</span>
+                </div>
+            </div>
+            <div class="card kpi">
+                <div class="kpi-icon bg-green"><i class="fas fa-check-circle"></i></div>
+                <div class="kpi-data">
+                    <span class="kpi-label">Prêtes à boire</span>
+                    <span class="kpi-value" id="kpi-ready">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="charts-grid">
+            <div class="card chart-container large">
+                <div class="card-header">
+                    <h3><i class="fas fa-hourglass-half"></i> Projection de Maturité</h3>
+                    <p class="card-subtitle">Nombre de bouteilles à l'apogée par année</p>
+                </div>
+                <div class="canvas-wrapper">
+                    <canvas id="chartMaturity"></canvas>
+                </div>
+            </div>
+            <div class="card chart-container small">
+                <div class="card-header">
+                    <h3>Répartition</h3>
+                </div>
+                <div class="canvas-wrapper">
+                    <canvas id="chartType"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- VUE: Inventaire -->
+    <section id="inventory" class="view hidden">
+        <div class="view-header">
+            <h1>Livre de Cave</h1>
+            <button class="btn-primary" onclick="openWineModal()">
+                <i class="fas fa-plus"></i> Nouveau Vin
+            </button>
+        </div>
+        
+        <div class="card toolbar">
+            <div class="search-group">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchBar" placeholder="Rechercher...">
+            </div>
+             <div class="filters-group">
+                <select id="filterType"><option value="">Tous Types</option>
+                    <option value="Rouge">Rouge</option><option value="Blanc">Blanc</option>
+                    <option value="Rosé">Rosé</option><option value="Champagne">Champagne</option>
+                    <option value="Cidre">Cidre</option>
+                </select>
+                <select id="filterRegion"><option value="">Toutes Régions</option>
+                    <option value="Bordeaux">Bordeaux</option>
+                    <option value="Bourgogne">Bourgogne</option>
+                    <option value="Rhône">Vallée du Rhône</option>
+                    <option value="Loire">Vallée de la Loire</option>
+                    <option value="Alsace">Alsace</option>
+                    <option value="Champagne">Champagne</option>
+                    <option value="Provence">Provence</option>
+                    <option value="Normandie">Normandie</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="card table-wrapper">
+            <table id="wineTable">
+                <thead>
+                    <tr>
+                        <th style="width: 35%;">Domaine / Vin</th>
+                        <th style="width: 20%;">Région</th>
+                        <th style="width: 15%;">Type</th>
+                        <th style="width: 15%;">Stock Total</th>
+                        <th style="width: 15%; text-align:right;">Info</th>
+                    </tr>
+                </thead>
+                <tbody><!-- JS Populates this --></tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- VUE: 3D -->
+    <section id="cave3d" class="view hidden">
+        <div class="view-header">
+            <h1>Cave Virtuelle</h1>
+            <p style="color:#6b7280; font-size:14px;">Cliquez sur un casier pour inspecter les bouteilles. <strong style="color:var(--primary)">Visuel proportionnel au contenu.</strong></p>
+        </div>
+        <div class="card visualizer-container">
+            <div id="canvas-container"></div>
+            <!-- Légende -->
+            <div class="visualizer-controls">
+                <div class="legend-item"><span class="dot rouge"></span> Rouge</div>
+                <div class="legend-item"><span class="dot blanc"></span> Blanc</div>
+                <div class="legend-item"><span class="dot rose"></span> Rosé</div>
+                <div class="legend-item"><span class="dot champagne"></span> Champ.</div>
+                <div class="legend-item"><span class="dot cidre"></span> Cid.</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- VUE: Map -->
+    <section id="map" class="view hidden">
+        <div class="view-header"><h1>Carte des Vignobles</h1></div>
+        <div class="card map-frame">
+            <div id="mapContainer"></div>
+            <!-- Légende Map -->
+            <div class="map-legend-overlay">
+                <div style="font-weight:700; margin-bottom:8px;">Dominante</div>
+                <div class="map-legend-item"><span class="dot rouge"></span> Rouge</div>
+                <div class="map-legend-item"><span class="dot blanc"></span> Blanc</div>
+                <div class="map-legend-item"><span class="dot rose"></span> Rosé</div>
+                <div class="map-legend-item"><span class="dot champagne"></span> Champagne</div>
+                <div class="map-legend-item"><span class="dot cidre"></span> Cidre</div>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<!-- MODAL AJOUT / EDITION -->
+<div id="modalForm" class="modal-overlay hidden">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2 id="modalTitle">Ajouter un Vin</h2>
+            <button class="close-modal"><i class="fas fa-times"></i></button>
+        </div>
+        
+        <form id="wineForm">
+            <input type="hidden" id="edit_id"> <!-- ID pour l'édition -->
+
+            <div class="form-grid">
+                <!-- Colonne Gauche: Identité -->
+                <div class="form-column">
+                    <h3><i class="fas fa-tag"></i> Identité</h3>
+                    <div class="input-group">
+                        <label>Nom du Domaine / Vin</label>
+                        <input type="text" id="f_nom" required placeholder="Ex: Château Margaux">
+                    </div>
+                    
+                    <!-- NOUVEAU CHAMP : APPELLATION AVEC DATALIST -->
+                    <div class="input-group">
+                        <label>Appellation (Optionnel)</label>
+                        <input type="text" id="f_appellation" list="appellation-list" placeholder="Ex: Saint-Émilion, Pauillac...">
+                        <datalist id="appellation-list">
+                            <option value="Saint-Émilion">
+                            <option value="Pauillac">
+                            <option value="Margaux">
+                            <option value="Pessac-Léognan">
+                            <option value="Saint-Julien">
+                            <option value="Sauternes">
+                            <option value="Chablis">
+                            <option value="Meursault">
+                            <option value="Châteauneuf-du-Pape">
+                            <option value="Côte-Rôtie">
+                            <option value="Sancerre">
+                            <option value="Pays d'Auge">
+                        </datalist>
+                    </div>
+
+                    <div class="row">
+                        <div class="input-group">
+                            <label>Millésime</label>
+                            <input type="number" id="f_millesime" placeholder="2020" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Type</label>
+                            <select id="f_type">
+                                <option value="Rouge">Rouge</option>
+                                <option value="Blanc">Blanc</option>
+                                <option value="Rosé">Rosé</option>
+                                <option value="Champagne">Champagne</option>
+                                <option value="Cidre">Cidre</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Région</label>
+                        <select id="f_region" required>
+                            <option value="Bordeaux">Bordeaux</option>
+                            <option value="Bourgogne">Bourgogne</option>
+                            <option value="Rhône">Vallée du Rhône</option>
+                            <option value="Loire">Vallée de la Loire</option>
+                            <option value="Alsace">Alsace</option>
+                            <option value="Champagne">Champagne</option>
+                            <option value="Normandie">Normandie</option>
+                            <option value="Provence">Provence</option>                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Prix d'achat (€)</label>
+                        <input type="number" id="f_prix" step="0.5">
+                    </div>
+                </div>
+
+                <!-- Colonne Droite: Technique & Stock -->
+                <div class="form-column">
+                    <h3><i class="fas fa-clock"></i> Maturité & Stock</h3>
+                    <div class="row">
+                        <div class="input-group">
+                            <label>Apogée Début</label>
+                            <input type="number" id="f_apogee_debut" placeholder="2024">
+                        </div>
+                        <div class="input-group">
+                            <label>Apogée Fin</label>
+                            <input type="number" id="f_apogee_fin" placeholder="2035">
+                        </div>
+                    </div>
+
+                    <div class="separator"></div>
+
+                    <h3><i class="fas fa-map-marker-alt"></i> Localisation</h3>
+                    <div class="row">
+                        <div class="input-group">
+                            <label>Mur (1-3)</label>
+                            <select id="f_mur">
+                                <option value="1">1 (Gauche)</option>
+                                <option value="2">2 (Fond)</option>
+                                <option value="3">3 (Droite)</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Colonne (1-10)</label>
+                            <input type="number" id="f_col" min="1" max="10" value="1">
+                        </div>
+                        <div class="input-group">
+                            <label>Ligne (1-5)</label>
+                            <input type="number" id="f_lig" min="1" max="5" value="1">
+                        </div>
+                    </div>
+                    
+                    <div class="input-group highlight-bg">
+                        <label>Quantité</label>
+                        <input type="number" id="f_quantity" value="1" min="1">
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-ghost close-modal-btn">Annuler</button>
+                <button type="button" class="btn-ghost" id="btnSaveContinue" style="border-color: var(--primary); color: var(--primary);">
+                    <i class="fas fa-save"></i> Enregistrer & Continuer
+                </button>
+                <button type="submit" class="btn-primary">Terminer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL SLOT -->
+<div id="modalSlot" class="modal-overlay hidden">
+    <div class="modal-box" style="width: 450px;">
+        <div class="modal-header" style="background: white; padding-bottom:10px;">
+            <div>
+                <h2 id="slotTitle" style="font-family:'Playfair Display'; color:var(--primary);">Casier Sélectionné</h2>
+                <p id="slotSubtitle" style="font-size:13px; color:#9ca3af; margin-top:4px;">Emplacement</p>
+            </div>
+            <button class="close-modal-slot" onclick="document.getElementById('modalSlot').classList.add('hidden')" style="background:none; border:none; font-size:18px; cursor:pointer;"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="card-content" style="padding: 0 30px 30px 30px;">
+            <div id="slotList" class="slot-popup-content">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+/* VINUM PRESTIGE - Core Logic V13 (Appellations & Multi-Color 3D) */
+
+const STATE = {
+    inventory: [],
+    charts: { maturity: null, type: null },
+    scene: { ref: null, camera: null, renderer: null, controls: null, raycaster: new THREE.Raycaster(), mouse: new THREE.Vector2(), objects: [] },
+    map: null
+};
+
+// --- CONFIGURATION COULEURS UNIFIÉE ---
+const WINE_COLORS = {
+    'Rouge':     { hex: '#800020', hex3d: 0x800020, css: 'badge-rouge' },
+    'Blanc':     { hex: '#eab308', hex3d: 0xeab308, css: 'badge-blanc' },
+    'Rosé':      { hex: '#f472b6', hex3d: 0xf472b6, css: 'badge-rose' },
+    'Champagne': { hex: '#15803d', hex3d: 0x15803d, css: 'badge-champagne' }, 
+    'Cidre':     { hex: '#e3ea5e', hex3d: 0xe3ea5e, css: 'badge-cidre' } 
+};
+
+// --- INITIALIZATION ---
+document.addEventListener('DOMContentLoaded', () => {
+    loadData();
+    initNavigation();
+    initDateDisplay();
+    updateDashboard();
+    initIO(); // Import/Export
+    setupFormListeners();
+    setupSearchListeners();
+});
+
+function initDateDisplay() {
+    const el = document.getElementById('currentDateDisplay');
+    if(el) el.innerText = new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function setupSearchListeners() {
+    document.getElementById('searchBar').addEventListener('input', renderInventoryTable);
+    document.getElementById('filterType').addEventListener('change', renderInventoryTable);
+    document.getElementById('filterRegion').addEventListener('change', renderInventoryTable);
+}
+
+function setupFormListeners() {
+    document.getElementById('wineForm').addEventListener('submit', (e) => handleFormSubmit(e, true));
+    document.getElementById('btnSaveContinue').addEventListener('click', (e) => handleFormSubmit(e, false));
+    
+    document.querySelectorAll('.close-modal, .close-modal-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('modalForm').classList.add('hidden');
+        });
+    });
+}
+
+// --- DATA LAYER ---
+function loadData() {
+    const stored = localStorage.getItem('vinum_data_v2');
+    if (stored) {
+        STATE.inventory = JSON.parse(stored);
+    } else {
+        STATE.inventory = getDemoData();
+        saveData();
+    }
+}
+
+function saveData() {
+    localStorage.setItem('vinum_data_v2', JSON.stringify(STATE.inventory));
+    updateDashboard();
+}
+
+function getDemoData() {
+    return [
+        ...Array(12).fill().map((_,i) => ({ id: 100+i, nom: "Château Margaux", appellation:"Margaux", millesime: 2015, type: "Rouge", region: "Bordeaux", prix: 650, apogee_debut: 2025, apogee_fin: 2045, emplacement: { mur: 2, col: 4, lig: 3 }, statut: "En cave", date_ajout: new Date().toISOString() })),
+        ...Array(6).fill().map((_,i) => ({ id: 200+i, nom: "Puligny-Montrachet", appellation:"Puligny-Montrachet", millesime: 2018, type: "Blanc", region: "Bourgogne", prix: 120, apogee_debut: 2022, apogee_fin: 2028, emplacement: { mur: 1, col: 2, lig: 2 }, statut: "En cave", date_ajout: new Date().toISOString() })),
+        ...Array(2).fill().map((_,i) => ({ id: 300+i, nom: "Dom Pérignon", appellation:"", millesime: 2012, type: "Champagne", region: "Champagne", prix: 200, apogee_debut: 2022, apogee_fin: 2030, emplacement: { mur: 3, col: 6, lig: 4 }, statut: "En cave", date_ajout: new Date().toISOString() }))
+    ];
+}
+
+// --- IMPORT / EXPORT ---
+function initIO() {
+    const btnExport = document.getElementById('btnExport');
+    const fileImport = document.getElementById('fileImport');
+
+    if (btnExport) {
+        btnExport.addEventListener('click', () => {
+            const dataStr = JSON.stringify(STATE.inventory, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `cave_backup_${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+    }
+
+    if (fileImport) {
+        fileImport.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    if (Array.isArray(data)) {
+                        STATE.inventory = data;
+                        saveData();
+                        alert("Sauvegarde restaurée avec succès !");
+                        location.reload();
+                    } else {
+                        alert("Format de fichier invalide.");
+                    }
+                } catch (err) {
+                    alert("Erreur lors de la lecture du fichier.");
+                }
+            };
+            reader.readAsText(file);
+        });
+    }
+}
+
+// --- NAVIGATION ---
+function initNavigation() {
+    document.querySelectorAll('.nav-links li').forEach(link => {
+        link.addEventListener('click', () => {
+            // Retirer active de tous les liens
+            document.querySelectorAll('.nav-links li').forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+
+            const target = link.dataset.target;
+            
+            // Masquer toutes les vues
+            document.querySelectorAll('.view').forEach(v => {
+                v.classList.remove('active');
+                v.classList.add('hidden');
+            });
+
+            // Afficher la vue cible
+            const activeView = document.getElementById(target);
+            if(activeView) {
+                activeView.classList.remove('hidden');
+                activeView.classList.add('active');
+                
+                // Triggers spécifiques aux vues
+                if (target === 'inventory') renderInventoryTable();
+                if (target === 'map') setTimeout(initMap, 100);
+                if (target === 'cave3d') init3D();
+                else stop3D(); // Arrêter la 3D si on quitte la vue
+            }
+        });
+    });
+}
+
+// --- DASHBOARD ---
+function updateDashboard() {
+    const stock = STATE.inventory.filter(b => b.statut === "En cave");
+    const totalVal = stock.reduce((acc, b) => acc + (b.prix || 0), 0);
+    const cy = new Date().getFullYear();
+    const ready = stock.filter(b => b.apogee_debut <= cy && b.apogee_fin >= cy).length;
+
+    const elCount = document.getElementById('kpi-count'); if(elCount) elCount.innerText = stock.length;
+    const elVal = document.getElementById('kpi-value'); if(elVal) elVal.innerText = totalVal.toLocaleString('fr-FR') + ' €';
+    const elReady = document.getElementById('kpi-ready'); if(elReady) elReady.innerText = ready;
+
+    renderCharts(stock);
+}
+
+function renderCharts(stock) {
+    const futureYears = [];
+    const maturityData = [];
+    const currentYear = new Date().getFullYear();
+
+    for(let y = currentYear; y <= currentYear + 15; y++) {
+        futureYears.push(y);
+        const count = stock.filter(b => b.apogee_debut <= y && b.apogee_fin >= y).length;
+        maturityData.push(count);
+    }
+
+    const ctxM = document.getElementById('chartMaturity');
+    if(ctxM) {
+        if(STATE.charts.maturity) STATE.charts.maturity.destroy();
+        STATE.charts.maturity = new Chart(ctxM.getContext('2d'), {
+            type: 'line',
+            data: { labels: futureYears, datasets: [{ label: 'Bouteilles à l\'apogée', data: maturityData, borderColor: '#800020', backgroundColor: 'rgba(128, 0, 32, 0.1)', fill: true, tension: 0.4 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+        });
+    }
+
+    const types = { 'Rouge': 0, 'Blanc': 0, 'Rosé': 0, 'Champagne': 0, 'Cidre':0};
+    stock.forEach(b => { if(types[b.type] !== undefined) types[b.type]++; });
+
+    const ctxT = document.getElementById('chartType');
+    if(ctxT) {
+        if(STATE.charts.type) STATE.charts.type.destroy();
+        
+        const labels = Object.keys(types);
+        const dataValues = Object.values(types);
+        const bgColors = labels.map(label => WINE_COLORS[label] ? WINE_COLORS[label].hex : '#ccc');
+
+        STATE.charts.type = new Chart(ctxT.getContext('2d'), {
+            type: 'doughnut',
+            data: { labels: labels, datasets: [{ data: dataValues, backgroundColor: bgColors, borderWidth: 0 }] },
+            options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'right' } } }
+        });
+    }
+}
+
+// --- FORM ADD/EDIT ---
+window.openWineModal = (mode = 'create', data = null) => {
+    const modal = document.getElementById('modalForm');
+    const title = document.getElementById('modalTitle');
+    const form = document.getElementById('wineForm');
+
+    modal.classList.remove('hidden');
+
+    if (mode === 'edit' && data) {
+        title.innerText = "Modifier le Vin";
+        document.getElementById('edit_id').value = data.id;
+        document.getElementById('f_nom').value = data.nom;
+        document.getElementById('f_appellation').value = data.appellation || ''; // Charger l'appellation
+        document.getElementById('f_millesime').value = data.millesime;
+        document.getElementById('f_type').value = data.type;
+        document.getElementById('f_region').value = data.region;
+        document.getElementById('f_prix').value = data.prix;
+        document.getElementById('f_apogee_debut').value = data.apogee_debut;
+        document.getElementById('f_apogee_fin').value = data.apogee_fin;
+        document.getElementById('f_mur').value = data.emplacement.mur;
+        document.getElementById('f_col').value = data.emplacement.col;
+        document.getElementById('f_lig').value = data.emplacement.lig;
+        
+        const currentQty = STATE.inventory.filter(b => 
+            b.statut === "En cave" &&
+            b.nom === data.nom && 
+            b.millesime === data.millesime && 
+            b.emplacement.mur === data.emplacement.mur &&
+            b.emplacement.col === data.emplacement.col &&
+            b.emplacement.lig === data.emplacement.lig
+        ).length;
+
+        const qtyInput = document.getElementById('f_quantity');
+        qtyInput.value = currentQty;
+        document.getElementById('btnSaveContinue').style.display = 'none';
+    } else {
+        title.innerText = "Ajouter un Vin";
+        form.reset();
+        document.getElementById('edit_id').value = '';
+        document.getElementById('f_quantity').value = 1;
+        document.getElementById('f_col').value = 1;
+        document.getElementById('f_lig').value = 1;
+        document.getElementById('f_region').value = 'Bordeaux'; 
+        document.getElementById('f_type').value = 'Rouge'; 
+        document.getElementById('btnSaveContinue').style.display = 'inline-block';
+    }
+};
+
+function handleFormSubmit(e, shouldClose) {
+    e.preventDefault();
+    const id = document.getElementById('edit_id').value;
+    const isEdit = !!id;
+
+    const formData = {
+        nom: document.getElementById('f_nom').value,
+        appellation: document.getElementById('f_appellation').value, // Sauvegarde Appellation
+        millesime: parseInt(document.getElementById('f_millesime').value),
+        type: document.getElementById('f_type').value,
+        region: document.getElementById('f_region').value,
+        prix: parseFloat(document.getElementById('f_prix').value) || 0,
+        apogee_debut: parseInt(document.getElementById('f_apogee_debut').value) || 0,
+        apogee_fin: parseInt(document.getElementById('f_apogee_fin').value) || 0,
+        emplacement: {
+            mur: parseInt(document.getElementById('f_mur').value),
+            col: parseInt(document.getElementById('f_col').value),
+            lig: parseInt(document.getElementById('f_lig').value)
+        },
+        statut: "En cave",
+        date_ajout: new Date().toISOString()
+    };
+    
+    const targetQty = parseInt(document.getElementById('f_quantity').value);
+
+    if (isEdit) {
+        const originalBottle = STATE.inventory.find(b => b.id == id);
+        if (originalBottle) {
+            const siblings = STATE.inventory.filter(b => 
+                b.statut === "En cave" &&
+                b.nom === originalBottle.nom &&
+                b.millesime === originalBottle.millesime &&
+                b.emplacement.mur === originalBottle.emplacement.mur &&
+                b.emplacement.col === originalBottle.emplacement.col &&
+                b.emplacement.lig === originalBottle.emplacement.lig
+            );
+
+            siblings.forEach(b => { 
+                Object.assign(b, formData); 
+            });
+
+            const currentCount = siblings.length;
+            if (targetQty > currentCount) {
+                for(let i=0; i<targetQty - currentCount; i++) {
+                    STATE.inventory.push({ ...formData, id: Date.now() + Math.random() + i });
+                }
+            } else if (targetQty < currentCount) {
+                const idsToRemove = siblings.slice(0, currentCount - targetQty).map(b => b.id);
+                STATE.inventory = STATE.inventory.filter(b => !idsToRemove.includes(b.id));
+            }
+        }
+    } else {
+        for(let i=0; i<targetQty; i++) {
+            STATE.inventory.push({ ...formData, id: Date.now() + Math.random() + i });
+        }
+    }
+
+    saveData();
+    
+    if (shouldClose) {
+        document.getElementById('modalForm').classList.add('hidden');
+        if(!document.getElementById('inventory').classList.contains('hidden')) renderInventoryTable();
+    } else {
+        const btn = document.getElementById('btnSaveContinue');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> Enregistré !';
+        setTimeout(() => btn.innerHTML = originalText, 1500);
+        document.getElementById('f_quantity').value = 1;
+        document.getElementById('f_col').focus();
+        if(!document.getElementById('inventory').classList.contains('hidden')) renderInventoryTable();
+    }
+}
+
+function getPrettyLocation(mur, col, lig) {
+    const murs = { 1: "Gauche", 2: "Fond", 3: "Droite" };
+    return `<span style="font-weight:600">${murs[mur]}</span> <span style="color:#9ca3af">• C:${col} L:${lig}</span>`;
+}
+
+// --- LOGIQUE ACCORDÉON (Avec Appellation) ---
+function renderInventoryTable() {
+    const tbody = document.querySelector('#wineTable tbody');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    
+    const search = document.getElementById('searchBar').value.toLowerCase();
+    const fType = document.getElementById('filterType').value;
+    const fRegion = document.getElementById('filterRegion').value;
+    
+    let stock = STATE.inventory.filter(b => b.statut === "En cave");
+    stock = stock.filter(b => 
+        ((b.nom || '').toLowerCase().includes(search) || (b.region || '').toLowerCase().includes(search) || (b.appellation || '').toLowerCase().includes(search)) &&
+        (fType === "" || b.type === fType) &&
+        (fRegion === "" || b.region === fRegion)
+    );
+
+    const domains = {};
+    stock.forEach(b => {
+        if (!domains[b.nom]) {
+            domains[b.nom] = { nom: b.nom, appellation: b.appellation, region: b.region, type: b.type, totalQty: 0, variants: [] };
+        }
+        domains[b.nom].totalQty++;
+        domains[b.nom].variants.push(b);
+    });
+
+    Object.values(domains).forEach((d, index) => {
+        const trParent = document.createElement('tr');
+        trParent.className = 'parent-row';
+        trParent.onclick = () => toggleRow(index);
+        
+        const badgeClass = WINE_COLORS[d.type] ? WINE_COLORS[d.type].css : '';
+        const appellationHtml = d.appellation ? `<span class="appellation-tag">${d.appellation}</span>` : '';
+
+        trParent.innerHTML = `
+            <td>
+                <i class="fas fa-chevron-right" id="icon-${index}"></i> &nbsp; 
+                <span style="font-weight:700; font-size:15px;">${d.nom}</span>
+                ${appellationHtml}
+            </td>
+            <td>${d.region}</td>
+            <td><span class="badge ${badgeClass}">${d.type}</span></td>
+            <td><span class="count-badge">${d.totalQty} Bouteilles</span></td>
+            <td class="text-right" style="font-size:12px; color:#9ca3af;">Cliquez pour voir le détail</td>
+        `;
+        tbody.appendChild(trParent);
+
+        const groupedVariants = {};
+        d.variants.forEach(v => {
+            const key = `${v.millesime}-${v.emplacement.mur}-${v.emplacement.col}-${v.emplacement.lig}`;
+            if(!groupedVariants[key]) groupedVariants[key] = { ...v, count: 0, ids: [] };
+            groupedVariants[key].count++;
+            groupedVariants[key].ids.push(v.id);
+        });
+
+        const trChild = document.createElement('tr');
+        trChild.className = 'child-row';
+        trChild.id = `detail-${index}`;
+        
+        let detailsHTML = `
+            <td colspan="5" style="padding:0;">
+                <table class="detail-table">
+                    <thead>
+                        <tr>
+                            <td class="detail-header">Millésime</td>
+                            <td class="detail-header">Emplacement</td>
+                            <td class="detail-header">Quantité</td>
+                            <td class="detail-header text-right">Actions</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        Object.values(groupedVariants).sort((a,b) => a.millesime - b.millesime).forEach(v => {
+            detailsHTML += `
+                <tr>
+                    <td><b>${v.millesime}</b></td>
+                    <td>${getPrettyLocation(v.emplacement.mur, v.emplacement.col, v.emplacement.lig)}</td>
+                    <td>x${v.count}</td>
+                    <td class="text-right">
+                        <button class="action-btn" title="Boire 1 bouteille" onclick="event.stopPropagation(); drinkOne('${v.ids[0]}')"><i class="fas fa-wine-glass"></i></button>
+                        <button class="action-btn" title="Modifier" onclick="event.stopPropagation(); editWine({id:'${v.ids[0]}', nom:'${v.nom.replace(/'/g, "\\'")}', appellation:'${(v.appellation || "").replace(/'/g, "\\'")}', millesime:${v.millesime}, type:'${v.type}', region:'${v.region}', prix:${v.prix}, apogee_debut:${v.apogee_debut}, apogee_fin:${v.apogee_fin}, emplacement:{mur:${v.emplacement.mur}, col:${v.emplacement.col}, lig:${v.emplacement.lig}}})"><i class="fas fa-pen"></i></button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        detailsHTML += `</tbody></table></td>`;
+        trChild.innerHTML = detailsHTML;
+        tbody.appendChild(trChild);
+    });
+}
+
+window.toggleRow = (index) => {
+    const row = document.getElementById(`detail-${index}`);
+    const icon = document.getElementById(`icon-${index}`);
+    const parent = icon.closest('tr');
+    
+    if (row.classList.contains('open')) {
+        row.classList.remove('open');
+        parent.classList.remove('expanded');
+    } else {
+        row.classList.add('open');
+        parent.classList.add('expanded');
+    }
+};
+
+window.drinkOne = (id) => { if(confirm("Sortir cette bouteille du stock ?")) { STATE.inventory.find(b=>b.id==id).statut="Bue"; saveData(); renderInventoryTable(); }};
+window.editWine = (data) => openWineModal('edit', data);
+
+// --- MAP ---
+function initMap() {
+    if (STATE.map) { STATE.map.invalidateSize(); updateMapMarkers(); return; }
+    const container = document.getElementById('mapContainer');
+    if(!container) return;
+    STATE.map = L.map('mapContainer').setView([46.6, 1.8], 6);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OSM' }).addTo(STATE.map);
+    updateMapMarkers();
+    setTimeout(() => STATE.map.invalidateSize(), 500);
+}
+
+function updateMapMarkers() {
+    const coords = { 
+        "Bordeaux": [44.8, -0.5], 
+        "Bourgogne": [47.0, 4.8], 
+        "Champagne": [49.2, 4.0],
+        "Normandie":[49.18, -0.37], 
+        "Rhône": [44.9, 4.8], 
+        "Loire": [47.2, -1.5], 
+        "Alsace": [48.5, 7.7], 
+        "Provence": [43.5, 6.0], 
+        "Etranger": [46, 2] 
+    };
+    
+    STATE.map.eachLayer((l) => { if (l instanceof L.CircleMarker) STATE.map.removeLayer(l); });
+    
+    const regions = {};
+    STATE.inventory.filter(b => b.statut === "En cave").forEach(b => {
+        if(!regions[b.region]) regions[b.region] = { count: 0, types: {} };
+        regions[b.region].count++;
+        regions[b.region].types[b.type] = (regions[b.region].types[b.type] || 0) + 1;
+    });
+
+    Object.keys(regions).forEach(r => {
+        if(coords[r]) {
+            const data = regions[r];
+            let domType = 'Rouge';
+            let max = 0;
+            for(const [t, c] of Object.entries(data.types)) {
+                if(c > max) { max = c; domType = t; }
+            }
+            const colorHex = WINE_COLORS[domType] ? WINE_COLORS[domType].hex : '#333';
+
+            L.circleMarker(coords[r], { 
+                radius: 10 + (data.count * 1.2), 
+                color: colorHex, 
+                fillColor: colorHex, 
+                fillOpacity: 0.6,
+                weight: 2
+            }).addTo(STATE.map)
+            .bindPopup(`
+                <div style="text-align:center">
+                    <b style="font-family:'Playfair Display'; font-size:16px;">${r}</b><br>
+                    <span style="color:${colorHex}; font-weight:bold">${domType} dominant</span><br>
+                    ${data.count} bouteilles
+                </div>
+            `);
+        }
+    });
+}
+
+// --- VISITE 3D (AVEC PROPORTIONS MULTICOULEURS) ---
+let animationId = null;
+
+function stop3D() {
+    if (animationId) cancelAnimationFrame(animationId);
+    animationId = null;
+}
+
+function init3D() {
+    const container = document.getElementById('canvas-container');
+    if(!container) return;
+    
+    stop3D(); 
+    
+    if (STATE.scene.renderer) {
+        container.innerHTML = ''; 
+        STATE.scene.renderer.dispose();
+        STATE.scene.objects = [];
+    }
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x3e2723); 
+    scene.fog = new THREE.Fog(0x3e2723, 40, 120);
+
+    const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 200);
+    camera.position.set(-10, 30, 45); 
+
+    const renderer = new THREE.WebGLRenderer({ 
+        antialias: true, 
+        alpha: false,
+        logarithmicDepthBuffer: true
+    });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.localClippingEnabled = true; 
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.6;
+    
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.maxPolarAngle = Math.PI / 2 - 0.05; 
+    controls.minDistance = 15;
+    controls.maxDistance = 60;
+
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2); 
+    scene.add(hemiLight);
+
+    const spotLight = new THREE.SpotLight(0xffeebb, 2.5);
+    spotLight.position.set(0, 40, 0);
+    spotLight.angle = Math.PI / 4;
+    spotLight.penumbra = 0.5;
+    spotLight.castShadow = true;
+    scene.add(spotLight);
+
+    const pointLight = new THREE.PointLight(0xd4af37, 2.0, 40);
+    pointLight.position.set(0, 15, 0);
+    scene.add(pointLight);
+
+    const floorGeo = new THREE.PlaneGeometry(150, 150);
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.8 });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    createDecor(scene);
+
+    const slotSize = 2.5; 
+    const spacing = slotSize * 1.4;
+
+    createDiamondWall(scene, 2, 0, -25, 0, spacing, slotSize);   
+    createDiamondWall(scene, 1, -28, -5, Math.PI / 2, spacing, slotSize); 
+    createDiamondWall(scene, 3, 28, -5, -Math.PI / 2, spacing, slotSize); 
+
+    STATE.scene.ref = scene;
+    STATE.scene.camera = camera;
+    STATE.scene.renderer = renderer;
+    STATE.scene.controls = controls;
+    STATE.scene.raycaster = new THREE.Raycaster();
+
+    function animate() {
+        if (!document.getElementById('cave3d').classList.contains('hidden')) {
+            animationId = requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+    }
+    animate();
+    
+    container.onclick = (e) => onCanvasClick(e, container);
+}
+
+function createDecor(scene) {
+    const rugGeo = new THREE.BoxGeometry(16, 0.1, 24);
+    const rugMat = new THREE.MeshStandardMaterial({ color: 0x5c0016, roughness: 1 });
+    const rug = new THREE.Mesh(rugGeo, rugMat);
+    rug.position.set(0, 0.1, 0);
+    rug.receiveShadow = true;
+    scene.add(rug);
+
+    const tableLegGeo = new THREE.CylinderGeometry(0.5, 0.5, 8, 16);
+    const goldMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.8, roughness: 0.2 });
+    const leg = new THREE.Mesh(tableLegGeo, goldMat);
+    leg.position.y = 4;
+    scene.add(leg);
+
+    const tableTopGeo = new THREE.CylinderGeometry(6, 6, 0.2, 32);
+    const blackMarbleMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1, metalness: 0.1 });
+    const tableTop = new THREE.Mesh(tableTopGeo, blackMarbleMat);
+    tableTop.position.y = 8;
+    tableTop.castShadow = true;
+    scene.add(tableTop);
+
+    const bBody = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 2.5, 12), new THREE.MeshStandardMaterial({ color: 0x223322, roughness: 0.1 }));
+    bBody.position.set(1, 9.25, 1);
+    const bNeck = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1, 12), new THREE.MeshStandardMaterial({ color: 0xd4af37 })); 
+    bNeck.position.y = 1.75;
+    bBody.add(bNeck);
+    bBody.castShadow = true;
+    scene.add(bBody);
+}
+
+function createDiamondWall(scene, murId, x, z, rotY, spacing, slotSize) {
+    const group = new THREE.Group();
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.6 });
+    const emptySlotMat = new THREE.MeshStandardMaterial({ color: 0x3e2723, roughness: 0.9 });
+    
+    const frameWidth = 8 * spacing * 1.1; 
+    const frameHeight = 6 * spacing * 1.1 + 4;
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(frameWidth + 2, frameHeight, 4.5), woodMat);
+    frame.position.y = frameHeight / 2 + 1;
+    frame.castShadow = true; 
+    frame.receiveShadow = true;
+    group.add(frame);
+
+    const slotGeo = new THREE.BoxGeometry(slotSize, slotSize, 3.8);
+
+    for(let r=0; r<6; r++) {
+        for(let c=0; c<8; c++) {
+            const wines = STATE.inventory.filter(b => b.statut === "En cave" && b.emplacement.mur === murId && b.emplacement.col === c+1 && b.emplacement.lig === r+1);
+            
+            const posX = (c - 3.5) * spacing; 
+            const posY = (r * spacing) + 5; 
+
+            // FOND (Coque vide, toujours présente)
+            const shell = new THREE.Mesh(slotGeo, emptySlotMat);
+            shell.position.set(posX, posY, 2.0); 
+            shell.rotation.z = Math.PI / 4; 
+            shell.userData = { type: 'slot', mur: murId, col: c+1, lig: r+1 };
+            STATE.scene.objects.push(shell); // Interactivité sur la coque
+            group.add(shell);
+
+            // LOGIQUE MULTI-COULEURS (STACKING)
+            if(wines.length > 0) {
+                const MAX_CAPACITY = 48;
+                
+                // Grouper par type pour l'affichage
+                const countsByType = {};
+                wines.forEach(w => {
+                    countsByType[w.type] = (countsByType[w.type] || 0) + 1;
+                });
+
+                // Géométrie du liquide (légèrement plus petite que le casier)
+                const liquidGeo = new THREE.BoxGeometry(slotSize * 0.92, slotSize * 0.92, 4.0);
+                const diagonal = (slotSize * 0.92) * Math.sqrt(2);
+                
+                // Position basse absolue dans l'espace local du casier
+                const boxBottomY = posY - (diagonal / 2);
+                
+                let currentHeightRatio = 0;
+
+                // Ordre d'affichage des couches (Optionnel, mais plus joli si constant)
+                const typeOrder = ['Rouge', 'Blanc', 'Rosé', 'Champagne', 'Cidre'];
+
+                typeOrder.forEach(type => {
+                    if (countsByType[type]) {
+                        const count = countsByType[type];
+                        const typeRatio = count / MAX_CAPACITY;
+                        
+                        // Calcul des niveaux de liquide pour ce type
+                        const startY = boxBottomY + (currentHeightRatio * diagonal);
+                        const endY = boxBottomY + ((currentHeightRatio + typeRatio) * diagonal);
+                        
+                        // Plans de coupe (Clipping Planes)
+                        const planes = [];
+                        
+                        // Plan bas (coupe tout ce qui est en dessous) - Normal vers le haut (0,1,0)
+                        // Le plan est défini dans l'espace Monde (World), il faudra que le mesh soit positionné correctement
+                        // Note: Three.js clipping planes sont en World Coordinates.
+                        // On doit calculer la hauteur WORLD.
+                        // Cependant, le groupe est rotaté. C'est complexe.
+                        // Solution simplifiée : Utiliser localClipping, mais les plans sont relatifs à la camera/scene.
+                        // Pour faire simple dans un groupe rotaté : on va simplement superposer les meshs au même endroit
+                        // et utiliser des plans Y globaux. Comme le groupe mur est vertical, Y est toujours haut/bas.
+                        
+                        // Le mur est positionné à Y=0, mais les casiers sont à posY.
+                        // La hauteur absolue Y du liquide est : posY (centre) +/- offset.
+                        
+                        const planeBottomY = startY; 
+                        const planeTopY = endY;
+
+                        // Plan qui coupe le bas : Normal (0, 1, 0), Constant = -hauteur
+                        const clipBottom = new THREE.Plane(new THREE.Vector3(0, 1, 0), -planeBottomY);
+                        // Plan qui coupe le haut : Normal (0, -1, 0), Constant = hauteur
+                        const clipTop = new THREE.Plane(new THREE.Vector3(0, -1, 0), planeTopY);
+                        
+                        planes.push(clipBottom, clipTop);
+
+                        const mat = getWineMaterial(type);
+                        mat.clippingPlanes = planes;
+
+                        const mesh = new THREE.Mesh(liquidGeo, mat);
+                        mesh.position.set(posX, posY, 2.1);
+                        mesh.rotation.z = Math.PI / 4;
+                        mesh.userData = { type: 'slot', mur: murId, col: c+1, lig: r+1 }; // Interactivité aussi sur le liquide
+                        
+                        // Important : Il faut ajouter le mesh au groupe pour qu'il suive la rotation du mur
+                        // MAIS : Les clipping planes sont en coordonnées MONDE.
+                        // Si le mur 2 (Fond) est face à nous, pas de souci.
+                        // Si le mur 1 ou 3 est tourné de 90 deg, le clipping Y fonctionne toujours car Y est l'axe vertical.
+                        // Donc ça marche !
+                        
+                        STATE.scene.objects.push(mesh);
+                        group.add(mesh);
+
+                        currentHeightRatio += typeRatio;
+                    }
+                });
+            }
+        }
+    }
+    group.position.set(x, 0, z);
+    group.rotation.y = rotY;
+    scene.add(group);
+}
+
+function getWineMaterial(type) {
+    const colorVal = (WINE_COLORS[type]) ? WINE_COLORS[type].hex3d : 0x800020;
+    
+    // Il faut créer une nouvelle instance de matière pour chaque bloc
+    // car ils ont des plans de coupe différents
+    return new THREE.MeshStandardMaterial({ 
+        color: colorVal, 
+        roughness: 0.15,      
+        metalness: 0.4,       
+        side: THREE.DoubleSide,
+        emissive: colorVal,
+        emissiveIntensity: 0.3,
+        transparent: true,
+        opacity: 0.9
+    });
+}
+
+function onCanvasClick(e, container) {
+    if(!STATE.scene.camera) return;
+    const r = container.getBoundingClientRect();
+    STATE.scene.mouse.x = ((e.clientX - r.left)/r.width)*2-1;
+    STATE.scene.mouse.y = -((e.clientY - r.top)/r.height)*2+1;
+    
+    STATE.scene.raycaster.setFromCamera(STATE.scene.mouse, STATE.scene.camera);
+    const intersects = STATE.scene.raycaster.intersectObjects(STATE.scene.objects);
+    
+    if(intersects.length > 0) { 
+        const d = intersects[0].object.userData; 
+        if(d.type === 'slot') showSlotDetails(d.mur, d.col, d.lig); 
+    }
+}
+
+function showSlotDetails(mur, col, lig) {
+    const wines = STATE.inventory.filter(b => b.statut === "En cave" && b.emplacement.mur === mur && b.emplacement.col === col && b.emplacement.lig === lig);
+    
+    document.getElementById('slotTitle').innerText = wines.length > 0 ? "Contenu du Casier" : "Casier Vide";
+    
+    const count = wines.length;
+    let countHtml = "";
+    if (count > 0) {
+        const style = count > 48 ? 'color:#ef4444; font-weight:800;' : 'color:#374151; font-weight:600;';
+        const icon = count > 48 ? ' <i class="fas fa-exclamation-circle"></i>' : '';
+        countHtml = `<span style="margin-left:10px; ${style}">• &nbsp; ${count} Bouteilles${icon}</span>`;
+    }
+
+    const murNom = mur === 1 ? 'Gauche' : (mur === 2 ? 'Fond' : 'Droite');
+    document.getElementById('slotSubtitle').innerHTML = `Mur ${murNom} • Col ${col} • Ligne ${lig} ${countHtml}`;
+    
+    const listEl = document.getElementById('slotList');
+    listEl.innerHTML = '';
+
+    if(wines.length === 0) {
+        listEl.innerHTML = '<div style="text-align:center; padding:20px; color:#9ca3af;">Aucune bouteille ici.</div>';
+    } else {
+        const grouped = {};
+        wines.forEach(w => {
+            const key = w.nom + w.millesime;
+            if(!grouped[key]) grouped[key] = { ...w, qty: 0 };
+            grouped[key].qty++;
+        });
+
+        Object.values(grouped).forEach(w => {
+            const badgeClass = WINE_COLORS[w.type] ? WINE_COLORS[w.type].css : '';
+            const appellationTxt = w.appellation ? `(${w.appellation})` : '';
+
+            const item = document.createElement('div');
+            item.className = 'wine-item';
+            item.innerHTML = `
+                <div class="wine-info">
+                    <h4>${w.nom} <span style="font-size:12px; font-style:italic; color:#666">${appellationTxt}</span></h4>
+                    <p>
+                        <span class="badge ${badgeClass}">${w.type}</span>
+                        ${w.millesime} • ${w.region}
+                    </p>
+                </div>
+                <div class="wine-qty">x${w.qty}</div>
+            `;
+            listEl.appendChild(item);
+        });
+    }
+    
+    document.getElementById('modalSlot').classList.remove('hidden');
+}
+</script>
+</body>
+</html>

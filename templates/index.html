@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="/static/images/ben'armagnac.png">
+<title>BEN'ARMAGNAC — Gestion de Cave & Dégustations</title>
+
+<!-- Bibliothèques Externes -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<!-- Feuilles de styles -->
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<!-- ===================== SIDEBAR ===================== -->
+<div class="sidebar">
+    <div class="logo">
+        <img src="/static/images/ben'armagnac.png" alt="Logo" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--accent);">
+        <span>BEN'ARMAGNAC</span>
+    </div>
+
+    <!-- Profil Caviste Cliquable -->
+    <div class="user-profile">
+        <button id="btnUserProfile" class="user-profile-btn" title="Modifier mon profil de caviste">
+            <div class="avatar"><i class="fas fa-user-tie"></i></div>
+            <div class="user-info">
+                <span class="name user-caviste-name">Ma Cave</span>
+                <span class="role user-caviste-badge"><i class="fas fa-wine-glass"></i> <span class="user-caviste-role">Caviste</span></span>
+            </div>
+        </button>
+    </div>
+
+    <ul class="nav-links" role="list">
+        <li class="active" data-target="dashboard" role="button" tabindex="0" aria-current="page">
+            <i class="fas fa-chart-line"></i> <span>Tableau de bord</span>
+        </li>
+        <li data-target="inventory" role="button" tabindex="0">
+            <i class="fas fa-list-ul"></i> <span>Livre de Cave</span>
+        </li>
+        <li data-target="cellar-config" role="button" tabindex="0">
+            <i class="fas fa-cubes-stacked"></i> <span>Mon Agencement</span>
+        </li>
+        <li data-target="cave3d" role="button" tabindex="0">
+            <i class="fas fa-vr-cardboard"></i> <span>Visite 3D</span>
+        </li>
+        <li data-target="historique" role="button" tabindex="0">
+            <i class="fas fa-history"></i> <span>Historique</span>
+        </li>
+        <li data-target="map" role="button" tabindex="0">
+            <i class="fas fa-map-marked-alt"></i> <span>Carte Vignobles</span>
+        </li>
+    </ul>
+
+    <div class="sidebar-footer">
+        <button id="btnExport" class="btn-ghost" title="Exporter la cave en fichier JSON de sauvegarde">
+            <i class="fas fa-download"></i> <span>Exporter la cave</span>
+        </button>
+        <label for="fileImport" class="btn-ghost" style="cursor: pointer;" title="Importer un fichier de sauvegarde JSON">
+            <i class="fas fa-upload"></i> <span>Importer un JSON</span>
+            <input type="file" id="fileImport" accept=".json" style="display: none;">
+        </label>
+        <button id="btnLogout" class="btn-ghost btn-logout" title="Se déconnecter">
+            <i class="fas fa-sign-out-alt"></i> <span>Déconnexion</span>
+        </button>
+    </div>
+</div>
+
+<!-- ===================== CONTENU PRINCIPAL ===================== -->
+<div class="content">
+
+    <!-- 1. VUE TABLEAU DE BORD -->
+    <div id="dashboard" class="view active">
+        <div class="view-header">
+            <div>
+                <h1 id="userCellarTitle">Tableau de bord</h1>
+                <div class="date-indicator" id="currentDateDisplay"></div>
+            </div>
+            <div>
+                <button class="btn-primary" onclick="document.querySelector('[data-target=inventory]').click(); document.getElementById('btnAddWine').click();">
+                    <i class="fas fa-plus"></i> Nouveau Flacon
+                </button>
+            </div>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="card kpi">
+                <div class="kpi-icon bg-red"><i class="fas fa-wine-bottle"></i></div>
+                <div class="kpi-data">
+                    <span class="kpi-label">Bouteilles en cave</span>
+                    <span class="kpi-value" id="kpiTotalBottles">0</span>
+                </div>
+            </div>
+            <div class="card kpi">
+                <div class="kpi-icon bg-gold"><i class="fas fa-coins"></i></div>
+                <div class="kpi-data">
+                    <span class="kpi-label">Valeur estimée</span>
+                    <span class="kpi-value" id="kpiTotalValue">0 €</span>
+                </div>
+            </div>
+            <div class="card kpi">
+                <div class="kpi-icon bg-green"><i class="fas fa-glass-cheers"></i></div>
+                <div class="kpi-data">
+                    <span class="kpi-label">Prêtes à boire</span>
+                    <span class="kpi-value" id="kpiReadyBottles">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="card chart-container">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3><i class="fas fa-chart-bar" style="color: var(--primary);"></i> Analyse des Stocks</h3>
+                        <p class="card-subtitle">Répartition par maturité ou millésimes</p>
+                    </div>
+                    <div class="dash-chart-selector" style="display: flex; gap: 6px;">
+                        <button type="button" class="btn-secondary active" data-chart="maturity" style="padding: 5px 10px; font-size: 12px;">Apogée</button>
+                        <button type="button" class="btn-secondary" data-chart="vintages" style="padding: 5px 10px; font-size: 12px;">Millésimes</button>
+                    </div>
+                </div>
+                <div class="canvas-wrapper">
+                    <canvas id="maturityChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card chart-container">
+                <div class="card-header">
+                    <h3><i class="fas fa-chart-pie" style="color: var(--accent);"></i> Couleurs de Vin</h3>
+                    <p class="card-subtitle">Proportion des cépages & types</p>
+                </div>
+                <div class="canvas-wrapper">
+                    <canvas id="typeChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. VUE LIVRE DE CAVE (INVENTAIRE) -->
+    <div id="inventory" class="view hidden">
+        <div class="view-header">
+            <div>
+                <h1>Livre de Cave</h1>
+                <div class="date-indicator">Inventaire détaillé de vos flacons</div>
+            </div>
+            <button id="btnAddWine" class="btn-primary">
+                <i class="fas fa-plus"></i> Ajouter un flacon
+            </button>
+        </div>
+
+        <div class="card toolbar">
+            <div class="search-group">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Rechercher domaine, appellation...">
+            </div>
+            <select id="filterType">
+                <option value="">Tous les types</option>
+                <option value="Rouge">Rouge</option>
+                <option value="Blanc">Blanc</option>
+                <option value="Rosé">Rosé</option>
+                <option value="Champagne">Champagne</option>
+                <option value="Cidre">Cidre</option>
+            </select>
+            <select id="filterZone">
+                <option value="">Tous les espaces</option>
+            </select>
+        </div>
+
+        <div class="table-wrapper card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Domaine / Vin</th>
+                        <th>Type</th>
+                        <th>Région</th>
+                        <th>Quantité</th>
+                        <th colspan="3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="inventoryTableBody">
+                    <!-- Rempli dynamiquement -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 3. VUE AGENCEMENT DE LA CAVE (NOUVEAU !) -->
+    <div id="cellar-config" class="view hidden">
+        <div class="view-header">
+            <div>
+                <h1>Agencement de ma Cave</h1>
+                <div class="date-indicator">Personnalisez vos espaces de stockage (cartons, casiers losanges, étagères, armoires vitrées)</div>
+            </div>
+            <button id="btnAddZone" class="btn-primary">
+                <i class="fas fa-plus-circle"></i> Ajouter un espace
+            </button>
+        </div>
+
+        <div class="card" style="margin-bottom: 24px; background: linear-gradient(135deg, #fdf8ed, #ffffff); border-left: 4px solid var(--accent);">
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <i class="fas fa-lightbulb" style="font-size: 24px; color: #b45309;"></i>
+                <div>
+                    <h4 style="font-size: 15px; font-weight: 600; color: #78350f; margin-bottom: 2px;">Personnalisation 3D dynamique</h4>
+                    <p style="font-size: 13px; color: #92400e;">
+                        Chaque espace configuré ici (sur des cartons posés au sol, dans une cave à casiers, sur des étagères ou dans une armoire à vin)
+                        est automatiquement modélisé dans la <strong>Visite 3D</strong> ! Vous pouvez cliquer directement dessus pour voir vos bouteilles.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div id="cellarZonesGrid" class="cellar-config-grid">
+            <!-- Rempli dynamiquement par renderCellarZonesList() -->
+        </div>
+    </div>
+
+    <!-- 4. VUE VISITE 3D DYNAMIQUE -->
+    <div id="cave3d" class="view hidden">
+        <div class="view-header">
+            <div>
+                <h1>Visite Virtuelle 3D</h1>
+                <div class="date-indicator">Explorez votre cave personnalisée en temps réel</div>
+            </div>
+            <div>
+                <button class="btn-secondary" onclick="init3D()">
+                    <i class="fas fa-sync-alt"></i> Recentrer la vue
+                </button>
+            </div>
+        </div>
+
+        <div class="visualizer-container">
+            <div id="canvas-container"></div>
+            <div class="cave-hint">
+                <span><i class="fas fa-mouse"></i> Clic gauche + glisser : tourner</span>
+                <span><i class="fas fa-arrows-alt"></i> Molette : zoomer</span>
+                <span><i class="fas fa-hand-pointer"></i> Clic sur carton / casier : voir contenu</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. VUE HISTORIQUE DES DÉGUSTATIONS -->
+    <div id="historique" class="view hidden">
+        <div class="view-header">
+            <div>
+                <h1>Journal des Dégustations</h1>
+                <div class="date-indicator">Vos notes, étoiles et souvenirs de dégustation</div>
+            </div>
+        </div>
+
+        <div id="historyFeed">
+            <!-- Rempli dynamiquement -->
+        </div>
+    </div>
+
+    <!-- 6. VUE CARTE DES VIGNOBLES -->
+    <div id="map" class="view hidden">
+        <div class="view-header">
+            <div>
+                <h1>Carte des Vignobles</h1>
+                <div class="date-indicator">Origine géographique de votre cave</div>
+            </div>
+        </div>
+        <div class="map-frame card">
+            <div id="mapContainer"></div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ===================== MODALES ===================== -->
+
+<!-- 1. MODALE AJOUT / ÉDITION DE VIN -->
+<div id="modalAdd" class="modal-overlay hidden">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2 id="modalTitle"><i class="fas fa-wine-bottle" style="color: var(--primary);"></i> Ajouter un vin</h2>
+            <button class="close-modal-btn-x" onclick="document.getElementById('modalAdd').classList.add('hidden')">×</button>
+        </div>
+        <form id="formAddWine">
+            <input type="hidden" id="edit_bottle_id">
+            <div class="form-grid">
+                <div class="form-column">
+                    <h3><i class="fas fa-info-circle"></i> Caractéristiques</h3>
+                    <div class="input-group">
+                        <label for="f_nom">Domaine / Nom du flacon *</label>
+                        <input type="text" id="f_nom" required placeholder="Ex: Château Margaux">
+                    </div>
+                    <div class="row">
+                        <div class="input-group">
+                            <label for="f_millesime">Millésime</label>
+                            <input type="number" id="f_millesime" min="1900" max="2099" placeholder="2018">
+                        </div>
+                        <div class="input-group">
+                            <label for="f_type">Couleur / Type</label>
+                            <select id="f_type">
+                                <option value="Rouge">Rouge</option>
+                                <option value="Blanc">Blanc</option>
+                                <option value="Rosé">Rosé</option>
+                                <option value="Champagne">Champagne</option>
+                                <option value="Cidre">Cidre</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="input-group">
+                            <label for="f_appellation">Appellation</label>
+                            <input type="text" id="f_appellation" placeholder="Ex: Margaux, Pessac-Léognan">
+                        </div>
+                        <div class="input-group">
+                            <label for="f_region">Région</label>
+                            <input type="text" id="f_region" placeholder="Ex: Bordeaux, Bourgogne">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="input-group">
+                            <label for="f_prix">Prix unitaire (€)</label>
+                            <input type="number" id="f_prix" step="0.5" min="0" placeholder="0.00">
+                        </div>
+                        <div class="input-group">
+                            <label for="f_quantite">Nombre de bouteilles</label>
+                            <input type="number" id="f_quantite" min="1" max="120" value="1">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-column">
+                    <h3><i class="fas fa-map-marker-alt"></i> Emplacement & Stockage</h3>
+                    <div class="input-group">
+                        <label for="f_zone">Espace de conservation *</label>
+                        <select id="f_zone">
+                            <!-- Généré selon les zones de l'utilisateur -->
+                        </select>
+                    </div>
+
+                    <!-- Si espace Cartons : choix du carton -->
+                    <div id="placementCartonGroup" class="input-group" style="display: none;">
+                        <label for="f_carton">Carton ou Caisse</label>
+                        <select id="f_carton"></select>
+                    </div>
+
+                    <!-- Si espace Armoire : choix de la clayette -->
+                    <div id="placementArmoireGroup" class="input-group" style="display: none;">
+                        <label for="f_clayette">Numéro de clayette</label>
+                        <select id="f_clayette"></select>
+                    </div>
+
+                    <!-- Si espace Casiers / Étagères : Colonne et Ligne -->
+                    <div id="placementGridGroup" class="row">
+                        <div class="input-group">
+                            <label for="f_col">Colonne</label>
+                            <input type="number" id="f_col" min="1" value="1">
+                        </div>
+                        <div class="input-group">
+                            <label for="f_lig">Ligne / Niveau</label>
+                            <input type="number" id="f_lig" min="1" value="1">
+                        </div>
+                    </div>
+
+                    <div class="separator"></div>
+
+                    <h3><i class="fas fa-hourglass-half"></i> Maturité & Notes</h3>
+                    <div class="row">
+                        <div class="input-group">
+                            <label for="f_apogee_debut">Apogée début</label>
+                            <input type="number" id="f_apogee_debut" placeholder="2025">
+                        </div>
+                        <div class="input-group">
+                            <label for="f_apogee_fin">Apogée fin</label>
+                            <input type="number" id="f_apogee_fin" placeholder="2035">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="f_notes">Commentaires caviste</label>
+                        <input type="text" id="f_notes" placeholder="Cadeau, garde conseillée, etc.">
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="document.getElementById('modalAdd').classList.add('hidden')">Annuler</button>
+                <button type="button" id="btnSaveAndAddAnother" class="btn-secondary">Enregistrer et ajouter un autre</button>
+                <button type="submit" class="btn-primary"><i class="fas fa-check"></i> Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 2. MODALE CRÉATION / ÉDITION D'ESPACE DE STOCKAGE (NOUVEAU !) -->
+<div id="modalZone" class="modal-overlay hidden">
+    <div class="modal-box" style="width: 580px;">
+        <div class="modal-header">
+            <h2 id="zoneModalTitle"><i class="fas fa-cubes-stacked" style="color: var(--primary);"></i> Ajouter un espace de stockage</h2>
+            <button class="close-modal-btn-x" onclick="document.getElementById('modalZone').classList.add('hidden')">×</button>
+        </div>
+        <form id="formZone" style="padding: 24px;">
+            <input type="hidden" id="zone_edit_id">
+            <input type="hidden" id="zone_type" value="cartons">
+
+            <div class="input-group">
+                <label for="zone_name">Nom de l'espace de stockage *</label>
+                <input type="text" id="zone_name" required placeholder="Ex: Cartons au sol, Mur Ouest, Cave à vin du salon">
+            </div>
+
+            <label style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                Mode de conservation / Type d'agencement *
+            </label>
+            <div class="storage-type-selector">
+                <div class="storage-type-card selected" data-type="cartons">
+                    <i class="fas fa-boxes" style="color: #b45309;"></i>
+                    <span>Sur des Cartons / Caisses</span>
+                </div>
+                <div class="storage-type-card" data-type="losange">
+                    <i class="fas fa-th-large" style="color: #800020;"></i>
+                    <span>Cave à Casiers Losanges</span>
+                </div>
+                <div class="storage-type-card" data-type="etagere">
+                    <i class="fas fa-align-justify" style="color: #16a34a;"></i>
+                    <span>Étagères Droites</span>
+                </div>
+                <div class="storage-type-card" data-type="armoire">
+                    <i class="fas fa-temperature-low" style="color: #2563eb;"></i>
+                    <span>Armoire à Vin Vitrée</span>
+                </div>
+            </div>
+
+            <div class="row" style="margin-top: 16px;">
+                <div class="input-group">
+                    <label id="lblZoneCols" for="zone_cols">Piles ou colonnes</label>
+                    <input type="number" id="zone_cols" min="1" max="24" value="4">
+                </div>
+                <div class="input-group">
+                    <label id="lblZoneRows" for="zone_rows">Hauteur ou étagères</label>
+                    <input type="number" id="zone_rows" min="1" max="12" value="3">
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label id="lblZoneCap" for="zone_cap">Capacité par emplacement (bouteilles)</label>
+                <input type="number" id="zone_cap" min="1" max="100" value="12">
+            </div>
+
+            <div class="modal-footer" style="padding: 16px 0 0; background: transparent; border-top: none;">
+                <button type="button" class="btn-secondary" onclick="document.getElementById('modalZone').classList.add('hidden')">Annuler</button>
+                <button type="submit" class="btn-primary"><i class="fas fa-check"></i> Enregistrer l'espace</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 3. MODALE DÉGUSTATION -->
+<div id="modalTasting" class="modal-overlay hidden">
+    <div class="modal-box tasting-modal">
+        <div class="tasting-wine-header">
+            <div class="wine-name" id="tastingWineName">Château Margaux 2015</div>
+            <div class="wine-meta" id="tastingWineMeta">Rouge • Margaux</div>
+        </div>
+        <div class="tasting-body">
+            <input type="hidden" id="tasting_bottle_id">
+            
+            <div class="tasting-section">
+                <div class="tasting-section-label"><i class="fas fa-calendar-alt"></i> Date de dégustation</div>
+                <input type="date" id="t_date" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; width: 100%;">
+            </div>
+
+            <div class="tasting-section">
+                <div class="tasting-section-label"><i class="fas fa-star"></i> Note globale</div>
+                <div class="star-rating">
+                    <span class="star" data-val="1">★</span>
+                    <span class="star" data-val="2">★</span>
+                    <span class="star" data-val="3">★</span>
+                    <span class="star" data-val="4">★</span>
+                    <span class="star" data-val="5">★</span>
+                    <span id="starDisplay" class="star-display">4 / 5</span>
+                </div>
+            </div>
+
+            <div class="tasting-section">
+                <div class="tasting-section-label"><i class="fas fa-comment-alt"></i> Commentaires de dégustation</div>
+                <textarea id="t_comment" rows="3" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px;" placeholder="Arômes, nez, bouche, accord mets et vins..."></textarea>
+            </div>
+
+            <div class="tasting-section">
+                <div class="tasting-section-label"><i class="fas fa-camera"></i> Photo du flacon ou de l'étiquette</div>
+                <div class="photo-upload-zone">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <span>Cliquez pour choisir une photo</span>
+                    <input type="file" id="t_photo" accept="image/*">
+                </div>
+                <img id="photoPreview" class="photo-preview" src="" alt="Aperçu">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-secondary" id="btnCloseTasting">Annuler</button>
+            <button type="button" class="btn-primary" id="btnConfirmTasting"><i class="fas fa-check"></i> Enregistrer la dégustation</button>
+        </div>
+    </div>
+</div>
+
+<!-- 4. MODALE DÉTAILS D'UN EMPLACEMENT 3D CLIC -->
+<div id="slotModal" class="modal-overlay hidden">
+    <div class="modal-box" style="width: 520px;">
+        <div class="modal-header">
+            <div>
+                <h2 id="slotTitle" style="font-size: 17px;">Contenu du casier</h2>
+                <div id="slotSubtitle" style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Mur Central</div>
+            </div>
+            <button class="close-modal-btn-x" onclick="closeModalSlot()">×</button>
+        </div>
+        <div id="slotContent" style="padding: 20px;">
+            <!-- Rempli au clic 3D -->
+        </div>
+    </div>
+</div>
+
+<!-- 5. MODALE PROFIL CAVISTE -->
+<div id="profileModal" class="modal-overlay hidden">
+    <div class="modal-box" style="width: 480px;">
+        <div class="modal-header">
+            <h2><i class="fas fa-id-badge" style="color: var(--primary);"></i> Mon Profil de Caviste</h2>
+            <button class="close-modal-btn-x" onclick="document.getElementById('profileModal').classList.add('hidden')">×</button>
+        </div>
+        <form id="formProfile" style="padding: 24px;">
+            <div class="input-group">
+                <label for="prof_cave_name">Nom de votre cave / Titre caviste</label>
+                <input type="text" id="prof_cave_name" required placeholder="Ex: Cave de Benjamin, Le Chai des Amis">
+            </div>
+            <div class="input-group">
+                <label for="prof_email">Adresse email de connexion</label>
+                <input type="email" id="prof_email" disabled style="background: #f3f4f6; color: #6b7280;">
+            </div>
+            <div class="input-group">
+                <label for="prof_password">Nouveau mot de passe (laisser vide pour ne pas changer)</label>
+                <input type="password" id="prof_password" placeholder="6 caractères minimum">
+            </div>
+            <div class="modal-footer" style="padding: 16px 0 0; background: transparent; border-top: none;">
+                <button type="button" class="btn-secondary" onclick="document.getElementById('profileModal').classList.add('hidden')">Fermer</button>
+                <button type="submit" class="btn-primary"><i class="fas fa-check"></i> Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ===================== MODALE AUTHENTIFICATION MULTI-UTILISATEURS ===================== -->
+<div id="authOverlay" class="auth-overlay hidden">
+    <div class="auth-box">
+        <div class="auth-header">
+            <div class="auth-logo">
+                <img src="/static/images/ben'armagnac.png" alt="Logo">
+                <span>BEN'ARMAGNAC</span>
+            </div>
+            <p>Gestionnaire de cave & livre de dégustation</p>
+        </div>
+
+        <div class="auth-tabs">
+            <button type="button" id="tabLoginBtn" class="auth-tab-btn active" onclick="switchAuthTab('login')">
+                <i class="fas fa-sign-in-alt"></i> Connexion
+            </button>
+            <button type="button" id="tabRegisterBtn" class="auth-tab-btn" onclick="switchAuthTab('register')">
+                <i class="fas fa-user-plus"></i> Créer ma cave
+            </button>
+        </div>
+
+        <div class="auth-body">
+            <!-- Formulaire Connexion -->
+            <form id="authLoginForm">
+                <div class="input-group">
+                    <label for="login_email">Adresse email</label>
+                    <input type="email" id="login_email" required placeholder="caviste@domaine.fr" autocomplete="email">
+                </div>
+                <div class="input-group">
+                    <label for="login_password">Mot de passe</label>
+                    <input type="password" id="login_password" required placeholder="••••••••" autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn-primary">
+                    <i class="fas fa-sign-in-alt"></i> Se connecter
+                </button>
+                <div class="auth-switch-text">
+                    Nouveau caviste ? <a onclick="switchAuthTab('register')">Créer votre compte de cave</a>
+                </div>
+            </form>
+
+            <!-- Formulaire Inscription -->
+            <form id="authRegisterForm" class="hidden">
+                <div class="input-group">
+                    <label for="reg_cave_name">Nom de votre cave / Nom de caviste *</label>
+                    <input type="text" id="reg_cave_name" required placeholder="Ex: Cave de Benjamin, Le Chai Privé">
+                </div>
+                <div class="input-group">
+                    <label for="reg_email">Adresse email *</label>
+                    <input type="email" id="reg_email" required placeholder="caviste@domaine.fr" autocomplete="email">
+                </div>
+                <div class="input-group">
+                    <label for="reg_password">Mot de passe (6 caractères min.) *</label>
+                    <input type="password" id="reg_password" minlength="6" required placeholder="••••••••" autocomplete="new-password">
+                </div>
+                <button type="submit" class="btn-primary">
+                    <i class="fas fa-user-plus"></i> Créer ma cave
+                </button>
+                <div class="auth-switch-text">
+                    Déjà inscrit ? <a onclick="switchAuthTab('login')">Se connecter</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== TOAST CONTAINER ===================== -->
+<div id="toast-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column;"></div>
+
+<!-- ===================== SCRIPTS ===================== -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Application Scripts -->
+<script src="/static/js/api.js"></script>
+<script src="/static/js/state.js"></script>
+<script src="/static/js/visualizer3d.js"></script>
+<script src="/static/js/app.js"></script>
+
+</body>
+</html>
+
