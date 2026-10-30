@@ -140,6 +140,7 @@
                     <div class="dash-chart-selector" style="display: flex; gap: 6px;">
                         <button type="button" class="btn-secondary active" data-chart="maturity" style="padding: 5px 10px; font-size: 12px;">Apogée</button>
                         <button type="button" class="btn-secondary" data-chart="vintages" style="padding: 5px 10px; font-size: 12px;">Millésimes</button>
+                        <button type="button" class="btn-secondary" data-chart="appellations" style="padding: 5px 10px; font-size: 12px;">Appellations</button>
                     </div>
                 </div>
                 <div class="canvas-wrapper">
@@ -262,17 +263,143 @@
     </div>
 
     <!-- 5. VUE HISTORIQUE DES DÉGUSTATIONS -->
-    <div id="historique" class="view hidden">
+    <div id="historique" class="view hidden" aria-label="Historique des dégustations">
         <div class="view-header">
             <div>
                 <h1>Journal des Dégustations</h1>
-                <div class="date-indicator">Vos notes, étoiles et souvenirs de dégustation</div>
+                <p class="date-indicator">Toutes vos dégustations archivées & analyses</p>
             </div>
         </div>
 
-        <div id="historyFeed">
-            <!-- Rempli dynamiquement -->
+        <!-- KPIs row -->
+        <div class="hist-kpi-grid" id="histKpiGrid">
+            <div class="hist-kpi" style="--kpi-accent:#800020">
+                <div class="hk-label">Dégustations</div>
+                <div class="hk-value" id="hkpi-total">0</div>
+                <div class="hk-sub">bouteilles bues</div>
+            </div>
+            <div class="hist-kpi" style="--kpi-accent:#f59e0b">
+                <div class="hk-label">Note moyenne</div>
+                <div class="hk-value" id="hkpi-avg">—</div>
+                <div class="hk-sub" id="hkpi-avg-sub">sur 10</div>
+            </div>
+            <div class="hist-kpi" style="--kpi-accent:#d4af37">
+                <div class="hk-label">Valeur dégustée</div>
+                <div class="hk-value" id="hkpi-value">0 €</div>
+                <div class="hk-sub">prix d'achat cumulé</div>
+            </div>
+            <div class="hist-kpi" style="--kpi-accent:#059669">
+                <div class="hk-label">Meilleure note</div>
+                <div class="hk-value" id="hkpi-best">—</div>
+                <div class="hk-sub" id="hkpi-best-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;">—</div>
+            </div>
+            <div class="hist-kpi" style="--kpi-accent:#7c3aed">
+                <div class="hk-label">Meilleur Q/P</div>
+                <div class="hk-value" id="hkpi-qp">—</div>
+                <div class="hk-sub" id="hkpi-qp-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;">—</div>
+            </div>
         </div>
+
+        <!-- Charts analytics -->
+        <div class="hist-charts-grid">
+            <!-- Dégustations par mois -->
+            <div class="hist-chart-card">
+                <h4><i class="fas fa-chart-bar"></i> Dégustations par mois</h4>
+                <div class="hist-chart-wrapper">
+                    <canvas id="chartHistMonthly" aria-label="Dégustations par mois"></canvas>
+                </div>
+            </div>
+            <!-- Par type -->
+            <div class="hist-chart-card">
+                <h4><i class="fas fa-chart-pie"></i> Par type de vin</h4>
+                <div class="hist-chart-wrapper">
+                    <canvas id="chartHistType" aria-label="Répartition par type"></canvas>
+                </div>
+            </div>
+            <!-- Distribution des notes -->
+            <div class="hist-chart-card">
+                <h4><i class="fas fa-star"></i> Distribution des notes</h4>
+                <div id="noteDistribContainer" style="height:140px; display:flex; flex-direction:column; justify-content:flex-end;"></div>
+            </div>
+        </div>
+
+        <!-- Top vins + filtres -->
+        <div style="display:grid; grid-template-columns:1fr 280px; gap:16px; margin-bottom:24px;">
+            <!-- Filtre bar complète -->
+            <div class="hist-filter-bar" role="search" aria-label="Filtres historique" style="flex-direction:column; align-items:stretch; gap:12px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+                    <span style="font-size:12px; font-weight:700; color:#374151; display:flex; align-items:center; gap:6px;"><i class="fas fa-filter" style="color:var(--primary); font-size:11px;"></i> Filtres</span>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span class="hist-result-count" id="histResultCount" aria-live="polite"></span>
+                        <button id="histResetFilters" type="button" style="font-size:11px; color:var(--primary); background:none; border:1px solid rgba(128,0,32,0.25); padding:4px 10px; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:4px;" aria-label="Réinitialiser tous les filtres">
+                            <i class="fas fa-times" aria-hidden="true"></i> Réinitialiser
+                        </button>
+                    </div>
+                </div>
+
+                <div style="display:flex; flex-wrap:wrap; gap:14px; align-items:flex-start;">
+                    <!-- Type -->
+                    <div>
+                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:5px;">Type de vin</div>
+                        <div id="slicerType" class="slicer-group" role="group" aria-label="Filtrer par type"></div>
+                    </div>
+
+                    <div style="width:1px;background:var(--border);align-self:stretch;"></div>
+
+                    <!-- Années -->
+                    <div>
+                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:5px;">Années</div>
+                        <div id="slicerYear" class="slicer-group" role="group" aria-label="Filtrer par année"></div>
+                    </div>
+
+                    <div style="width:1px;background:var(--border);align-self:stretch;"></div>
+
+                    <!-- Mois -->
+                    <div>
+                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:5px;">Mois</div>
+                        <div id="slicerMonth" class="slicer-group" role="group" aria-label="Filtrer par mois"></div>
+                    </div>
+
+                    <div style="width:1px;background:var(--border);align-self:stretch;"></div>
+
+                    <!-- Note min -->
+                    <div>
+                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:5px;">Note min.</div>
+                        <div class="star-filter-group" id="starFilterGroup" role="group" aria-label="Filtrer par note minimale">
+                            <button type="button" class="star-filter-btn active" data-min="0" aria-pressed="true">Toutes</button>
+                            <button type="button" class="star-filter-btn" data-min="3" aria-pressed="false"><span class="sf-stars">★★★</span>+</button>
+                            <button type="button" class="star-filter-btn" data-min="5" aria-pressed="false"><span class="sf-stars">★★★★★</span>+</button>
+                            <button type="button" class="star-filter-btn" data-min="7" aria-pressed="false"><span class="sf-stars">★★★★★★★</span>+</button>
+                            <button type="button" class="star-filter-btn" data-min="9" aria-pressed="false"><span class="sf-stars">★★★★★★★★★</span>+</button>
+                        </div>
+                    </div>
+
+                    <div style="width:1px;background:var(--border);align-self:stretch;"></div>
+
+                    <!-- Q/P -->
+                    <div>
+                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:5px;">Qualité/Prix</div>
+                        <select id="histFilterQP" aria-label="Filtrer par rapport qualité-prix" style="font-size:12px;padding:5px 8px;">
+                            <option value="">Tous</option>
+                            <option value="5">🤩 Excellent</option>
+                            <option value="4">😊 Très bon</option>
+                            <option value="3">🙂 Bien</option>
+                            <option value="2">😐 Moyen</option>
+                            <option value="1">😞 Décevant</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top dégustations -->
+            <div class="hist-chart-card" style="padding:16px 18px;">
+                <h4><i class="fas fa-trophy"></i> Top dégustations</h4>
+                <table class="hist-top-table" id="histTopTable" aria-label="Meilleures dégustations"></table>
+            </div>
+        </div>
+
+        <!-- Feed -->
+        <div id="historyFeed" class="history-feed" role="list" aria-label="Liste des dégustations"></div>
     </div>
 
     <!-- 6. VUE CARTE DES VIGNOBLES -->
@@ -483,50 +610,168 @@
 </div>
 
 <!-- 3. MODALE DÉGUSTATION -->
-<div id="modalTasting" class="modal-overlay hidden">
+<!-- 3. MODALE DÉGUSTATION -->
+<div id="modalTasting" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="tastingTitle">
     <div class="modal-box tasting-modal">
         <div class="tasting-wine-header">
-            <div class="wine-name" id="tastingWineName">Château Margaux 2015</div>
-            <div class="wine-meta" id="tastingWineMeta">Rouge • Margaux</div>
+            <div class="wine-name" id="tastingWineName">—</div>
+            <div class="wine-meta" id="tastingWineMeta"></div>
         </div>
+
+        <div class="modal-header" style="background:white; position:relative; padding-bottom: 0;">
+            <h2 id="tastingTitle"><i class="fas fa-wine-glass" aria-hidden="true" style="color:var(--primary);"></i> Noter la dégustation</h2>
+            <button type="button" class="close-modal-btn-x" id="btnCloseTastingX" aria-label="Fermer"><i class="fas fa-times" aria-hidden="true"></i></button>
+        </div>
+
         <div class="tasting-body">
             <input type="hidden" id="tasting_bottle_id">
-            
+
+            <!-- Date -->
             <div class="tasting-section">
                 <div class="tasting-section-label"><i class="fas fa-calendar-alt"></i> Date de dégustation</div>
                 <input type="date" id="t_date" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; width: 100%;">
             </div>
 
+            <!-- Note sur 10 -->
             <div class="tasting-section">
-                <div class="tasting-section-label"><i class="fas fa-star"></i> Note globale</div>
-                <div class="star-rating">
-                    <span class="star" data-val="1">★</span>
-                    <span class="star" data-val="2">★</span>
-                    <span class="star" data-val="3">★</span>
-                    <span class="star" data-val="4">★</span>
-                    <span class="star" data-val="5">★</span>
-                    <span id="starDisplay" class="star-display">4 / 5</span>
+                <div class="tasting-section-label"><i class="fas fa-star"></i> Votre note <span style="font-weight:400; color:#9ca3af; text-transform:none">(sur 10 - optionnel)</span></div>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <div class="star-rating" id="starRating" role="group" aria-label="Notation de 1 à 10">
+                        <span class="star" data-val="1">★</span>
+                        <span class="star" data-val="2">★</span>
+                        <span class="star" data-val="3">★</span>
+                        <span class="star" data-val="4">★</span>
+                        <span class="star" data-val="5">★</span>
+                        <span class="star" data-val="6">★</span>
+                        <span class="star" data-val="7">★</span>
+                        <span class="star" data-val="8">★</span>
+                        <span class="star" data-val="9">★</span>
+                        <span class="star" data-val="10">★</span>
+                    </div>
+                    <span id="starDisplay" class="star-display">Non noté</span>
+                    <button type="button" id="btnClearRating" style="font-size:11px; color:#9ca3af; background:none; border:none; cursor:pointer; text-decoration:underline;">Effacer</button>
                 </div>
             </div>
 
+            <!-- Rapport Qualité / Prix -->
+            <div class="tasting-section">
+                <div class="tasting-section-label"><i class="fas fa-balance-scale"></i> Rapport Q/P <span style="font-weight:400; color:#9ca3af; text-transform:none">(optionnel)</span></div>
+                <div class="qp-selector" id="tastingQPSelector" role="group" aria-label="Rapport qualité-prix" style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <div class="qp-option" data-qp="1" tabindex="0" role="button" aria-pressed="false" style="flex:1;min-width:55px;text-align:center;font-size:11px;padding:7px 4px;border:1px solid var(--border);border-radius:6px;cursor:pointer;"><span class="qp-emoji">😞</span><br>Décevant</div>
+                    <div class="qp-option" data-qp="2" tabindex="0" role="button" aria-pressed="false" style="flex:1;min-width:55px;text-align:center;font-size:11px;padding:7px 4px;border:1px solid var(--border);border-radius:6px;cursor:pointer;"><span class="qp-emoji">😐</span><br>Moyen</div>
+                    <div class="qp-option" data-qp="3" tabindex="0" role="button" aria-pressed="false" style="flex:1;min-width:55px;text-align:center;font-size:11px;padding:7px 4px;border:1px solid var(--border);border-radius:6px;cursor:pointer;"><span class="qp-emoji">🙂</span><br>Bien</div>
+                    <div class="qp-option" data-qp="4" tabindex="0" role="button" aria-pressed="false" style="flex:1;min-width:55px;text-align:center;font-size:11px;padding:7px 4px;border:1px solid var(--border);border-radius:6px;cursor:pointer;"><span class="qp-emoji">😊</span><br>Très bon</div>
+                    <div class="qp-option" data-qp="5" tabindex="0" role="button" aria-pressed="false" style="flex:1;min-width:55px;text-align:center;font-size:11px;padding:7px 4px;border:1px solid var(--border);border-radius:6px;cursor:pointer;"><span class="qp-emoji">🤩</span><br>Excellent</div>
+                </div>
+                <input type="hidden" id="t_qp" value="0">
+            </div>
+
+            <!-- Commentaire -->
             <div class="tasting-section">
                 <div class="tasting-section-label"><i class="fas fa-comment-alt"></i> Commentaires de dégustation</div>
-                <textarea id="t_comment" rows="3" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px;" placeholder="Arômes, nez, bouche, accord mets et vins..."></textarea>
+                <textarea id="t_comment" rows="3" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px;" placeholder="Nez, bouche, longueur en bouche, accord mets et vins..."></textarea>
             </div>
 
+            <!-- Tags -->
+            <div class="tasting-section">
+                <div class="tasting-section-label"><i class="fas fa-tag"></i> Tags <span style="font-weight:400; color:#9ca3af; text-transform:none">(optionnel)</span></div>
+                <div class="tags-container" id="tagsContainer" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px;"></div>
+                <div class="tags-suggestions" id="tagSuggestions" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
+                    <span class="tag-suggestion" role="button" tabindex="0" style="font-size:11px; padding:4px 8px; border:1px solid var(--border); border-radius:12px; cursor:pointer; background:#fff;">🍽 Dîner en famille</span>
+                    <span class="tag-suggestion" role="button" tabindex="0" style="font-size:11px; padding:4px 8px; border:1px solid var(--border); border-radius:12px; cursor:pointer; background:#fff;">🎉 Occasion spéciale</span>
+                    <span class="tag-suggestion" role="button" tabindex="0" style="font-size:11px; padding:4px 8px; border:1px solid var(--border); border-radius:12px; cursor:pointer; background:#fff;">🎁 Cadeau</span>
+                    <span class="tag-suggestion" role="button" tabindex="0" style="font-size:11px; padding:4px 8px; border:1px solid var(--border); border-radius:12px; cursor:pointer; background:#fff;">🥩 Repas de fête</span>
+                    <span class="tag-suggestion" role="button" tabindex="0" style="font-size:11px; padding:4px 8px; border:1px solid var(--border); border-radius:12px; cursor:pointer; background:#fff;">👫 Entre amis</span>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <input type="text" id="tagInput" placeholder="Ajouter un tag personnalisé… (Entrée)" style="flex:1; padding:7px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; outline:none;">
+                    <button type="button" id="addTagBtn" class="btn-secondary" style="padding:7px 12px; font-size:13px;">Ajouter</button>
+                </div>
+            </div>
+
+            <!-- Photo -->
             <div class="tasting-section">
                 <div class="tasting-section-label"><i class="fas fa-camera"></i> Photo du flacon ou de l'étiquette</div>
-                <div class="photo-upload-zone">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                    <span>Cliquez pour choisir une photo</span>
-                    <input type="file" id="t_photo" accept="image/*">
+                <div class="photo-upload-zone" id="photoUploadZone" style="position:relative; border:2px dashed var(--border); padding:16px; text-align:center; border-radius:8px; cursor:pointer;">
+                    <i class="fas fa-cloud-upload-alt" style="font-size:24px; color:var(--text-muted);"></i>
+                    <div>Cliquez pour choisir une photo</div>
+                    <input type="file" id="t_photo" accept="image/*" style="opacity:0; position:absolute; top:0; left:0; width:100%; height:100%; cursor:pointer;">
                 </div>
-                <img id="photoPreview" class="photo-preview" src="" alt="Aperçu">
+                <img id="photoPreview" class="photo-preview" src="" alt="Aperçu" style="max-height:120px; border-radius:6px; margin-top:8px; display:none;">
             </div>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn-secondary" id="btnCloseTasting">Annuler</button>
             <button type="button" class="btn-primary" id="btnConfirmTasting"><i class="fas fa-check"></i> Enregistrer la dégustation</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== MODALE ÉDITION DÉGUSTATION ===================== -->
+<div id="modalEditTasting" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="editTastingTitle">
+    <div class="modal-box edit-tasting-modal">
+        <div class="modal-header">
+            <h2 id="editTastingTitle"><i class="fas fa-pen" aria-hidden="true" style="color:var(--primary);"></i> Modifier la dégustation</h2>
+            <button type="button" class="close-modal-btn-x" onclick="closeEditTasting()" aria-label="Fermer"><i class="fas fa-times" aria-hidden="true"></i></button>
+        </div>
+        <div class="et-wine-banner" style="display:flex; align-items:center; gap:12px; padding:12px 16px; background:#f9fafb; border-bottom:1px solid var(--border);">
+            <div class="et-wine-icon" style="font-size:24px; color:var(--primary);"><i class="fas fa-wine-bottle" aria-hidden="true"></i></div>
+            <div>
+                <div class="et-wine-name" id="etWineName" style="font-weight:700; font-size:15px;">—</div>
+                <div class="et-wine-meta" id="etWineMeta" style="font-size:12px; color:var(--text-muted);"></div>
+            </div>
+        </div>
+        <div class="et-body" style="padding:16px 20px; display:flex; flex-direction:column; gap:14px;">
+            <input type="hidden" id="et_entry_id">
+
+            <!-- Date -->
+            <div>
+                <div class="et-section-label" style="font-size:12px; font-weight:600; margin-bottom:4px;">Date de dégustation</div>
+                <input type="date" id="et_date" style="width:200px; padding:8px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; outline:none;">
+            </div>
+
+            <!-- Note -->
+            <div>
+                <div class="et-section-label" style="font-size:12px; font-weight:600; margin-bottom:4px;">Note <span style="font-weight:400; color:#9ca3af; font-size:11px">(sur 10 - optionnel)</span></div>
+                <div class="et-stars-row" style="display:flex; align-items:center; gap:8px;">
+                    <div id="etStarContainer" role="group" aria-label="Sélectionner une note" style="display:flex; gap:2px; font-size:20px; color:#d1d5db; cursor:pointer;"></div>
+                    <span class="et-score-display" id="etScoreDisplay" style="font-weight:700; font-size:13px; color:var(--primary);">Non noté</span>
+                    <button type="button" onclick="setEditRating(0)" style="margin-left:6px; font-size:11px; color:#9ca3af; background:none; border:none; cursor:pointer; text-decoration:underline;">Effacer</button>
+                </div>
+            </div>
+
+            <!-- Commentaire -->
+            <div>
+                <div class="et-section-label" style="font-size:12px; font-weight:600; margin-bottom:4px;">Commentaire <span style="font-weight:400; color:#9ca3af; font-size:11px">(optionnel)</span></div>
+                <textarea id="et_comment" rows="3" style="width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; resize:vertical; outline:none;" placeholder="Nez, bouche, finale…"></textarea>
+            </div>
+
+            <!-- Rapport Qualité/Prix -->
+            <div>
+                <div class="et-section-label" style="font-size:12px; font-weight:600; margin-bottom:4px;">Rapport Qualité / Prix <span style="font-weight:400; color:#9ca3af; font-size:11px">(optionnel)</span></div>
+                <div class="qp-selector" id="etQPSelector" role="group" aria-label="Rapport qualité-prix" style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <div class="qp-option" data-qp="1" tabindex="0" role="button" aria-pressed="false" style="flex:1;min-width:55px;text-align:center;font-size:11px;padding:7px 4px;border:1px solid var(--border);border-radius:6px;cursor:pointer;"><span class="qp-emoji">😞</span><br>Décevant</div>
+                    <div class="qp-option" data-qp="2" tabindex="0" role="button" aria-pressed="false" style="flex:1;min-width:55px;text-align:center;font-size:11px;padding:7px 4px;border:1px solid var(--border);border-radius:6px;cursor:pointer;"><span class="qp-emoji">😐</span><br>Moyen</div>
+                    <div class="qp-option" data-qp="3" tabindex="0" role="button" aria-pressed="false" style="flex:1;min-width:55px;text-align:center;font-size:11px;padding:7px 4px;border:1px solid var(--border);border-radius:6px;cursor:pointer;"><span class="qp-emoji">🙂</span><br>Bien</div>
+                    <div class="qp-option" data-qp="4" tabindex="0" role="button" aria-pressed="false" style="flex:1;min-width:55px;text-align:center;font-size:11px;padding:7px 4px;border:1px solid var(--border);border-radius:6px;cursor:pointer;"><span class="qp-emoji">😊</span><br>Très bon</div>
+                    <div class="qp-option" data-qp="5" tabindex="0" role="button" aria-pressed="false" style="flex:1;min-width:55px;text-align:center;font-size:11px;padding:7px 4px;border:1px solid var(--border);border-radius:6px;cursor:pointer;"><span class="qp-emoji">🤩</span><br>Excellent</div>
+                </div>
+            </div>
+
+            <!-- Tags -->
+            <div>
+                <div class="et-section-label" style="font-size:12px; font-weight:600; margin-bottom:4px;">Tags <span style="font-weight:400; color:#9ca3af; font-size:11px">(optionnel)</span></div>
+                <div class="et-tags-container" id="etTagsContainer" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px;"></div>
+                <div class="et-tag-suggestions" id="etTagSuggestions" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div>
+                <div style="display:flex; gap:6px; margin-top:8px;">
+                    <input type="text" id="et_tag_input" placeholder="Ajouter un tag… (Entrée)" style="flex:1; padding:7px 10px; border:1px solid var(--border); border-radius:8px; font-size:13px; outline:none;">
+                    <button type="button" onclick="addEditTag(document.getElementById('et_tag_input').value.trim()); document.getElementById('et_tag_input').value=''" style="padding:7px 14px; background:var(--primary); color:white; border:none; border-radius:8px; cursor:pointer; font-size:13px;">+</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer" style="padding:14px 20px; background:#fafafa; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:10px;">
+            <button type="button" class="btn-ghost" onclick="closeEditTasting()">Annuler</button>
+            <button type="button" class="btn-primary" onclick="saveEditTasting()"><i class="fas fa-check" aria-hidden="true"></i> Enregistrer les modifications</button>
         </div>
     </div>
 </div>

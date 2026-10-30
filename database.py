@@ -73,6 +73,7 @@ def init_db():
             commentaire TEXT DEFAULT '',
             photo_base64 TEXT,
             tags_json TEXT DEFAULT '[]',
+            qp INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
@@ -82,6 +83,10 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_tasting_user ON tasting_log(user_id);
         CREATE INDEX IF NOT EXISTS idx_zones_user ON cellar_zones(user_id);
         ''')
+        try:
+            conn.execute("ALTER TABLE tasting_log ADD COLUMN qp INTEGER DEFAULT 0;")
+        except Exception:
+            pass
     conn.close()
 
 def create_default_zones_for_user(user_id, conn=None):

@@ -1139,6 +1139,52 @@ function renderDashboardCharts(stock) {
                 },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
+        } else if (STATE.dashboardChartType === 'appellations') {
+            // Distribution par appellation (Top 10)
+            const appCounts = {};
+            stock.forEach(b => {
+                const app = b.appellation ? b.appellation.trim() : "Sans appellation";
+                appCounts[app] = (appCounts[app] || 0) + 1;
+            });
+
+            const sortedApps = Object.entries(appCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+
+            const labels = sortedApps.map(x => x[0]);
+            const data = sortedApps.map(x => x[1]);
+
+            STATE.charts.maturity = new Chart(maturityCanvas, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Nombre de bouteilles',
+                        data: data,
+                        backgroundColor: '#800020',
+                        borderColor: '#5c0016',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1, font: { size: 10 } },
+                            grid: { color: 'rgba(0,0,0,0.04)' }
+                        },
+                        y: {
+                            ticks: { font: { size: 11, weight: '500' } },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
         } else {
             // Par apogée
             const currentYear = new Date().getFullYear();
@@ -1171,44 +1217,567 @@ function renderDashboardCharts(stock) {
 function initDashboardFilters() {}
 
 // ==========================================
-// DÉGUSTATIONS (HISTORIQUE)
+// DÉGUSTATIONS (HISTORIQUE) & ANALYTIQUES COMPLÈTES
 // ==========================================
 
-let currentTastingRating = null;
+const HIST_FILTERS = {
+    types:   new Set(),
+    years:   new Set(),
+    months:  new Set(),
+    minStar: 0,
+    qp: 0
+};
+
+const MONTH_NAMES_FR = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'];
+let histCharts = { monthly: null, type: null };
+
+let currentTastingRating = 0;
+let currentTastingQP = 0;
 let currentTastingTags = new Set();
+
+let editTastingRating = 0;
+let editTastingQP = 0;
+let editTastingTags = [];
+const TAG_SUGGESTIONS = ['Dîner en famille', 'Occasion spéciale', 'Cadeau', 'Repas de fête', 'Entre amis', 'Accord fromage'];
+
+function buildHistSlicer(containerId, items, filterSet, labelFn, cssClassFn) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    el.innerHTML = '';
+    items.forEach(item => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'slicer-chip' + (cssClassFn ? ' ' + cssClassFn(item) : '');
+        chip.textContent = labelFn(item);
+        chip.setAttribute('aria-pressed', String(filterSet.has(item)));
+        if (filterSet.has(item)) chip.classList.add('active');
+        chip.addEventListener('click', () => {
+            if (filterSet.has(item)) {
+                filterSet.delete(item);
+                chip.classList.remove('active');
+                chip.setAttribute('aria-pressed', 'false');
+            } else {
+                filterSet.add(item);
+                chip.classList.add('active');
+                chip.setAttribute('aria-pressed', 'true');
+            }
+            renderHistoryFeed();
+        });
+        el.appendChild(chip);
+    });
+}
+
+function initHistorySlicers() {
+    buildHistSlicer('slicerType',
+        ['Rouge', 'Blanc', 'Rosé', 'Champagne', 'Cidre'],
+        HIST_FILTERS.types,
+        t => t,
+        t => 'type-' + t.toLowerCase().replace('é', 'e')
+    );
+
+    const years = [...new Set(STATE.tastingLog.map(e => e.date_consommation ? e.date_consommation.slice(0, 4) : '').filter(Boolean))].sort().reverse();
+    buildHistSlicer('slicerYear', years, HIST_FILTERS.years, y => y, null);
+
+    const presentMonths = [...new Set(
+        STATE.tastingLog.map(e => e.date_consommation ? parseInt(e.date_consommation.slice(5, 7)) : null).filter(Boolean)
+    )].sort((a, b) => a - b);
+    buildHistSlicer('slicerMonth', presentMonths, HIST_FILTERS.months,
+        m => MONTH_NAMES_FR[m - 1],
+        null
+    );
+
+    document.getElementById('starFilterGroup')?.querySelectorAll('.star-filter-btn').forEach(btn => {
+        btn.onclick = () => {
+            document.querySelectorAll('.star-filter-btn').forEach(b => {
+                b.classList.remove('active');
+                b.setAttribute('aria-pressed', 'false');
+            });
+            btn.classList.add('active');
+            btn.setAttribute('aria-pressed', 'true');
+            HIST_FILTERS.minStar = parseInt(btn.dataset.min || '0');
+            renderHistoryFeed();
+        };
+    });
+
+    const qpSelect = document.getElementById('histFilterQP');
+    if (qpSelect && !qpSelect._bound) {
+        qpSelect._bound = true;
+        qpSelect.addEventListener('change', e => {
+            HIST_FILTERS.qp = parseInt(e.target.value || '0') || 0;
+            renderHistoryFeed();
+        });
+    }
+
+    const resetBtn = document.getElementById('histResetFilters');
+    if (resetBtn && !resetBtn._bound) {
+        resetBtn._bound = true;
+        resetBtn.addEventListener('click', () => {
+            HIST_FILTERS.types.clear();
+            HIST_FILTERS.years.clear();
+            HIST_FILTERS.months.clear();
+            HIST_FILTERS.minStar = 0;
+            HIST_FILTERS.qp = 0;
+            const qpSel = document.getElementById('histFilterQP');
+            if (qpSel) qpSel.value = '';
+            document.querySelectorAll('.star-filter-btn').forEach((b, i) => {
+                b.classList.toggle('active', i === 0);
+                b.setAttribute('aria-pressed', String(i === 0));
+            });
+            initHistorySlicers();
+            renderHistoryFeed();
+        });
+    }
+}
+
+function getHistFiltered() {
+    let entries = [...STATE.tastingLog];
+    if (HIST_FILTERS.types.size > 0) entries = entries.filter(e => HIST_FILTERS.types.has(e.bottle_ref?.type));
+    if (HIST_FILTERS.years.size > 0) entries = entries.filter(e => HIST_FILTERS.years.has(e.date_consommation?.slice(0, 4)));
+    if (HIST_FILTERS.months.size > 0) entries = entries.filter(e => {
+        const mo = e.date_consommation ? parseInt(e.date_consommation.slice(5, 7)) : null;
+        return mo && HIST_FILTERS.months.has(mo);
+    });
+    if (HIST_FILTERS.minStar > 0) entries = entries.filter(e => e.note && e.note >= HIST_FILTERS.minStar);
+    if (HIST_FILTERS.qp > 0)      entries = entries.filter(e => e.qp === HIST_FILTERS.qp);
+    return entries;
+}
+
+function renderHistoryFeed() {
+    const feed = document.getElementById('historyFeed');
+    if (!feed) return;
+
+    initHistorySlicers();
+
+    const filtered = getHistFiltered();
+    const all = STATE.tastingLog;
+
+    const totalVal  = filtered.reduce((a, e) => a + (e.bottle_ref?.prix || 0), 0);
+    const noted     = filtered.filter(e => e.note);
+    const avgNote   = noted.length ? (noted.reduce((a, e) => a + e.note, 0) / noted.length).toFixed(1) : null;
+    const bestEntry = noted.length ? [...noted].sort((a, b) => b.note - a.note)[0] : null;
+    const withQP    = filtered.filter(e => e.qp);
+    const bestQP    = withQP.length ? [...withQP].sort((a, b) => b.qp - a.qp)[0] : null;
+
+    const setEl = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+    };
+
+    setEl('hkpi-total', filtered.length);
+    setEl('hkpi-avg', avgNote ? avgNote + '/10' : '—');
+    setEl('hkpi-value', totalVal.toLocaleString('fr-FR') + ' €');
+    setEl('hkpi-best', bestEntry ? bestEntry.note + '/10' : '—');
+    setEl('hkpi-best-name', bestEntry ? (bestEntry.bottle_ref?.nom || '—') : '—');
+    setEl('hkpi-qp', bestQP ? '★'.repeat(bestQP.qp) : '—');
+    setEl('hkpi-qp-name', bestQP ? (bestQP.bottle_ref?.nom || '—') : '—');
+
+    renderHistMonthlyChart(filtered);
+    renderHistTypeChart(filtered);
+    renderNoteDistrib(filtered);
+    renderTopTable(filtered);
+
+    const countEl = document.getElementById('histResultCount');
+    if (countEl) countEl.textContent = `${filtered.length} dégustation${filtered.length > 1 ? 's' : ''}`;
+
+    feed.innerHTML = '';
+    if (filtered.length === 0) {
+        feed.innerHTML = `
+            <div class="empty-state" style="padding: 40px; text-align: center;">
+                <i class="fas fa-wine-glass-alt" style="font-size: 36px; color: #9ca3af; margin-bottom: 12px;"></i>
+                <h3>${all.length === 0 ? 'Aucune dégustation enregistrée' : 'Aucun résultat avec ces filtres'}</h3>
+                <p style="color: #6b7280; font-size: 14px;">${all.length === 0
+                    ? 'Chaque fois que vous dégustez un flacon depuis votre cave, il sera consigné ici avec vos notes et souvenirs.'
+                    : "Modifiez ou réinitialisez vos filtres pour voir d'autres dégustations."}</p>
+            </div>
+        `;
+        return;
+    }
+
+    filtered.forEach(entry => {
+        const ref = entry.bottle_ref || {};
+        const badgeClass = WINE_COLORS[ref.type]?.css || 'badge-rouge';
+        const stripeColor = WINE_COLORS[ref.type]?.hex || '#800020';
+        const dateStr = entry.date_consommation
+            ? new Date(entry.date_consommation + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+            : '—';
+
+        let starsHtml = '<span style="font-size:12px;color:#9ca3af;font-style:italic;">Non noté</span>';
+        if (entry.note) {
+            const f = Math.round(entry.note);
+            const e2 = Math.max(0, 10 - f);
+            starsHtml = `
+                <span class="stars-display">
+                    ${'<span class="star-filled" style="color:#f59e0b;" aria-hidden="true">★</span>'.repeat(f)}
+                    ${'<span class="star-empty" style="color:#d1d5db;" aria-hidden="true">★</span>'.repeat(e2)}
+                    <span class="score-text" style="font-weight:700; color:var(--primary); margin-left:6px;">${entry.note}/10</span>
+                </span>
+            `;
+        }
+
+        const qpLabels = { 5: 'Excellent', 4: 'Très bon', 3: 'Bien', 2: 'Moyen', 1: 'Décevant' };
+        const qpEmojis = { 5: '🤩', 4: '😊', 3: '🙂', 2: '😐', 1: '😞' };
+        let qpHtml = '';
+        if (entry.qp) {
+            qpHtml = `<span class="qp-badge qp-${entry.qp}" style="display:inline-flex; align-items:center; gap:4px; font-size:11px; padding:3px 8px; border-radius:12px; background:#f3f4f6; color:#374151; font-weight:600;">${qpEmojis[entry.qp]} ${qpLabels[entry.qp]}</span>`;
+        }
+
+        const tagsHtml = (entry.tags && entry.tags.length)
+            ? entry.tags.map(t => `<span class="history-tag" style="display:inline-block; font-size:11px; padding:2px 8px; border-radius:12px; background:#f9fafb; border:1px solid #e5e7eb; color:#4b5563;">${escHtml(t)}</span>`).join(' ')
+            : '';
+        const footerItems = [tagsHtml, qpHtml].filter(Boolean).join(' ');
+
+        const safeId = escHtml(entry.id);
+
+        const card = document.createElement('div');
+        card.className = 'history-card';
+        card.setAttribute('role', 'listitem');
+        card.innerHTML = `
+            <div class="history-card-stripe" style="background:${stripeColor};" aria-hidden="true"></div>
+            <div class="history-card-body">
+                <div class="history-card-header">
+                    <div class="history-card-left">
+                        <div class="history-card-date">${dateStr}</div>
+                        <div class="history-card-name" style="font-family:'Playfair Display',serif; font-size:18px; font-weight:700; color:var(--primary);">
+                            ${escHtml(ref.nom || '—')} ${ref.millesime || ''}
+                        </div>
+                        <div class="history-card-meta">
+                            <span class="badge ${badgeClass}">${escHtml(ref.type || '')}</span>
+                            ${ref.region ? `<span>${escHtml(ref.region)}</span>` : ''}
+                            ${ref.appellation ? `<span style="font-style:italic;color:#6b7280;">${escHtml(ref.appellation)}</span>` : ''}
+                            ${ref.prix ? `<span style="color:#6b7280;"><i class="fas fa-tag" aria-hidden="true"></i> ${ref.prix} €</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="history-card-right">
+                        <div class="history-card-actions">
+                            <button type="button" class="hcard-action-btn" title="Modifier cette dégustation" onclick="openEditTasting('${safeId}')">
+                                <i class="fas fa-pen" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" class="hcard-action-btn delete" title="Supprimer cette dégustation" onclick="deleteTasting('${safeId}')">
+                                <i class="fas fa-trash" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        <div>${starsHtml}</div>
+                    </div>
+                </div>
+                ${entry.commentaire ? `<div class="history-card-comment" style="margin-top:10px; font-size:14px; color:#374151; font-style:italic;">« ${escHtml(entry.commentaire)} »</div>` : ''}
+                ${footerItems ? `<div class="history-card-footer" style="margin-top:12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">${footerItems}</div>` : ''}
+            </div>
+            ${entry.photo_base64 ? `<div class="history-card-photo" style="display:flex; align-items:center; padding:12px;"><img src="${entry.photo_base64}" style="max-height:140px; border-radius:8px; border:1px solid var(--border);" alt="Photo flacon" loading="lazy"></div>` : ''}
+        `;
+        feed.appendChild(card);
+    });
+}
+
+function renderHistMonthlyChart(entries) {
+    const log = entries || STATE.tastingLog;
+    const ctx = document.getElementById('chartHistMonthly');
+    if (!ctx) return;
+    if (histCharts.monthly) { histCharts.monthly.destroy(); histCharts.monthly = null; }
+    if (log.length === 0) return;
+
+    const keySet = new Set(log.map(e => e.date_consommation ? e.date_consommation.slice(0, 7) : '').filter(Boolean));
+    if (keySet.size === 0) return;
+
+    const sortedKeys = [...keySet].sort();
+    const [fy, fm] = sortedKeys[0].split('-').map(Number);
+    const [ly, lm] = sortedKeys[sortedKeys.length - 1].split('-').map(Number);
+
+    const labels = [], dataCount = [], dataMoney = [];
+    let y = fy, m = fm;
+    while (y < ly || (y === ly && m <= lm)) {
+        const key = `${y}-${String(m).padStart(2, '0')}`;
+        const mes = log.filter(e => e.date_consommation && e.date_consommation.startsWith(key));
+        labels.push(new Date(y, m - 1, 1).toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' }));
+        dataCount.push(mes.length);
+        dataMoney.push(Math.round(mes.reduce((s, e) => s + (e.bottle_ref?.prix || 0), 0)));
+        m++;
+        if (m > 12) { m = 1; y++; }
+    }
+
+    const chartCtx = ctx.getContext('2d');
+    const gBar = chartCtx.createLinearGradient(0, 0, 0, 180);
+    gBar.addColorStop(0, 'rgba(128,0,32,0.90)');
+    gBar.addColorStop(1, 'rgba(128,0,32,0.20)');
+
+    const gArea = chartCtx.createLinearGradient(0, 0, 0, 180);
+    gArea.addColorStop(0, 'rgba(212,175,55,0.40)');
+    gArea.addColorStop(1, 'rgba(212,175,55,0.0)');
+
+    histCharts.monthly = new Chart(chartCtx, {
+        data: {
+            labels,
+            datasets: [
+                {
+                    type: 'bar',
+                    label: 'Bouteilles bues',
+                    data: dataCount,
+                    backgroundColor: gBar,
+                    borderRadius: { topLeft: 5, topRight: 5 },
+                    borderSkipped: false,
+                    yAxisID: 'yCount',
+                    order: 2
+                },
+                {
+                    type: 'line',
+                    label: 'Valeur dégustée (€)',
+                    data: dataMoney,
+                    borderColor: '#d4af37',
+                    borderWidth: 2.5,
+                    backgroundColor: gArea,
+                    pointBackgroundColor: '#d4af37',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 7,
+                    tension: 0.45,
+                    fill: true,
+                    yAxisID: 'yMoney',
+                    order: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    align: 'end',
+                    labels: { font: { size: 11 }, padding: 10, usePointStyle: true, pointStyleWidth: 10, color: '#6b7280' }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(17,24,39,0.93)',
+                    titleColor: '#f9fafb',
+                    bodyColor: 'rgba(249,250,251,0.8)',
+                    padding: 10,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: i => i.datasetIndex === 0
+                            ? `  🍷 ${i.parsed.y} bouteille${i.parsed.y > 1 ? 's' : ''}`
+                            : `  💰 ${i.parsed.y.toLocaleString('fr-FR')} €`
+                    }
+                }
+            },
+            scales: {
+                yCount: {
+                    position: 'left',
+                    beginAtZero: true,
+                    ticks: { stepSize: 1, color: '#9ca3af', font: { size: 10 } },
+                    grid: { color: 'rgba(0,0,0,0.04)' }
+                },
+                yMoney: {
+                    position: 'right',
+                    beginAtZero: true,
+                    ticks: { color: '#d4af37', font: { size: 10 }, callback: v => v >= 1000 ? (v / 1000).toFixed(1) + 'k€' : v + '€' },
+                    grid: { display: false }
+                },
+                x: {
+                    ticks: { color: '#9ca3af', font: { size: 10 }, maxRotation: 40 },
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+}
+
+function renderHistTypeChart(entries) {
+    const log = entries || STATE.tastingLog;
+    const ctx = document.getElementById('chartHistType');
+    if (!ctx) return;
+    if (histCharts.type) { histCharts.type.destroy(); histCharts.type = null; }
+    if (log.length === 0) return;
+
+    const counts = {};
+    log.forEach(e => {
+        const t = e.bottle_ref?.type || 'Autre';
+        counts[t] = (counts[t] || 0) + 1;
+    });
+    const labels = Object.keys(counts).filter(k => counts[k] > 0);
+    const values = labels.map(k => counts[k]);
+    const colors = labels.map(l => WINE_COLORS[l]?.hex || '#ccc');
+
+    histCharts.type = new Chart(ctx.getContext('2d'), {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: {
+                legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 8, usePointStyle: true, pointStyleWidth: 8 } }
+            }
+        }
+    });
+}
+
+function renderNoteDistrib(entries) {
+    const log = entries || STATE.tastingLog;
+    const container = document.getElementById('noteDistribContainer');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const noted = log.filter(e => e.note);
+    if (noted.length === 0) {
+        container.innerHTML = '<div style="text-align:center;color:#9ca3af;font-size:12px;padding-top:30px;">Aucune note enregistrée</div>';
+        return;
+    }
+
+    const buckets = [
+        { label: '1-2', min: 1, max: 2 },
+        { label: '3-4', min: 3, max: 4 },
+        { label: '5-6', min: 5, max: 6 },
+        { label: '7-8', min: 7, max: 8 },
+        { label: '9-10', min: 9, max: 10 }
+    ];
+    const counts = buckets.map(b => noted.filter(e => e.note >= b.min && e.note <= b.max).length);
+    const maxCount = Math.max(...counts, 1);
+    const MAX_HEIGHT = 80;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'note-distrib';
+    wrap.style.cssText = 'display:flex;gap:6px;align-items:flex-end;height:' + MAX_HEIGHT + 'px;';
+
+    buckets.forEach((b, i) => {
+        const h = Math.max(4, Math.round((counts[i] / maxCount) * MAX_HEIGHT));
+        const barWrap = document.createElement('div');
+        barWrap.className = 'note-bar-wrap';
+        barWrap.innerHTML = `
+            <span class="note-bar-count" style="font-size:10px;font-weight:700;color:#374151;">${counts[i] || ''}</span>
+            <div class="note-bar" style="height:${h}px;background:var(--primary);border-radius:3px 3px 0 0;width:100%;opacity:0.8;" title="${b.label}: ${counts[i]} dégustations"></div>
+            <span class="note-bar-label" style="font-size:9px;color:#9ca3af;font-weight:600;">${b.label}</span>
+        `;
+        wrap.appendChild(barWrap);
+    });
+    container.appendChild(wrap);
+
+    const leg = document.createElement('div');
+    leg.style.cssText = 'font-size:10px;color:#9ca3af;text-align:center;margin-top:6px;';
+    leg.textContent = `${noted.length} note${noted.length > 1 ? 's' : ''} sur ${log.length}`;
+    container.appendChild(leg);
+}
+
+function renderTopTable(entries) {
+    const log = entries || STATE.tastingLog;
+    const table = document.getElementById('histTopTable');
+    if (!table) return;
+    table.innerHTML = '';
+
+    const noted = [...log].filter(e => e.note).sort((a, b) => b.note - a.note).slice(0, 5);
+    if (noted.length === 0) {
+        table.innerHTML = '<tr><td style="color:#9ca3af;font-size:12px;padding:16px 0;">Aucune note enregistrée</td></tr>';
+        return;
+    }
+
+    const rankClasses = ['gold', 'silver', 'bronze', '', ''];
+    noted.forEach((e, i) => {
+        const ref = e.bottle_ref || {};
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="width:28px;padding:6px 2px;">
+                <span class="hist-top-rank ${rankClasses[i] || ''}">${i + 1}</span>
+            </td>
+            <td style="padding:6px 6px;">
+                <div class="hist-top-name" style="font-weight:600;font-size:13px;color:var(--text-main);">${escHtml(ref.nom || '—')}</div>
+                <div class="hist-top-meta" style="font-size:11px;color:#9ca3af;">${ref.millesime || ''} ${ref.region ? '· ' + escHtml(ref.region) : ''}</div>
+            </td>
+            <td style="padding:6px 2px; text-align:right;">
+                <div class="hist-top-score" style="font-weight:700;color:var(--primary);font-size:13px;">${e.note}/10</div>
+            </td>
+        `;
+        table.appendChild(tr);
+    });
+}
 
 function initTastingModal() {
     const modal = document.getElementById('modalTasting');
     const closeBtn = document.getElementById('btnCloseTasting');
+    const closeBtnX = document.getElementById('btnCloseTastingX');
     const confirmBtn = document.getElementById('btnConfirmTasting');
+    const clearRatingBtn = document.getElementById('btnClearRating');
 
-    if (closeBtn && modal) {
-        closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
-    }
+    const closeModal = () => modal?.classList.add('hidden');
+    if (closeBtn) closeBtn.onclick = closeModal;
+    if (closeBtnX) closeBtnX.onclick = closeModal;
 
     if (confirmBtn) {
-        confirmBtn.addEventListener('click', async () => {
+        confirmBtn.onclick = async () => {
             await submitTasting();
-        });
+        };
     }
 
-    // Étoiles de notation
+    // 10 stars rating
     document.querySelectorAll('#modalTasting .star').forEach(star => {
         star.addEventListener('click', () => {
             const val = parseFloat(star.dataset.val);
             currentTastingRating = val;
-            highlightStars(val);
+            highlightTastingStars(val);
+        });
+        star.addEventListener('mouseenter', () => {
+            const val = parseFloat(star.dataset.val);
+            highlightTastingStars(val);
         });
     });
 
-    // Zone upload photo
+    document.getElementById('starRating')?.addEventListener('mouseleave', () => {
+        highlightTastingStars(currentTastingRating);
+    });
+
+    if (clearRatingBtn) {
+        clearRatingBtn.onclick = () => {
+            currentTastingRating = 0;
+            highlightTastingStars(0);
+        };
+    }
+
+    // Q/P selector
+    document.querySelectorAll('#tastingQPSelector .qp-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+            const qpVal = parseInt(opt.dataset.qp);
+            setTastingQP(qpVal);
+        });
+    });
+
+    // Tag suggestions
+    document.querySelectorAll('#modalTasting .tag-suggestion').forEach(tagEl => {
+        tagEl.addEventListener('click', () => {
+            const tagText = tagEl.textContent.replace(/^[^\w\sÀ-ÿ]+/, '').trim();
+            addTastingTag(tagText);
+        });
+    });
+
+    // Custom tag input
+    const tagInput = document.getElementById('tagInput');
+    const addTagBtn = document.getElementById('addTagBtn');
+    if (tagInput && !tagInput._bound) {
+        tagInput._bound = true;
+        tagInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addTastingTag(tagInput.value.trim());
+                tagInput.value = '';
+            }
+        });
+    }
+    if (addTagBtn) {
+        addTagBtn.onclick = () => {
+            if (tagInput) {
+                addTastingTag(tagInput.value.trim());
+                tagInput.value = '';
+            }
+        };
+    }
+
+    // Photo upload preview
     const photoInput = document.getElementById('t_photo');
-    if (photoInput) {
-        photoInput.addEventListener('change', (e) => {
+    if (photoInput && !photoInput._bound) {
+        photoInput._bound = true;
+        photoInput.addEventListener('change', e => {
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = (ev) => {
+            reader.onload = ev => {
                 const prev = document.getElementById('photoPreview');
                 if (prev) {
                     prev.src = ev.target.result;
@@ -1218,6 +1787,53 @@ function initTastingModal() {
             reader.readAsDataURL(file);
         });
     }
+}
+
+function highlightTastingStars(val) {
+    document.querySelectorAll('#modalTasting .star').forEach(s => {
+        const starVal = parseFloat(s.dataset.val);
+        s.classList.toggle('active', starVal <= val);
+        s.style.color = starVal <= val ? '#f59e0b' : '#d1d5db';
+    });
+    const starDisplay = document.getElementById('starDisplay');
+    if (starDisplay) {
+        starDisplay.textContent = val > 0 ? `${val} / 10` : 'Non noté';
+    }
+}
+
+function setTastingQP(val) {
+    currentTastingQP = val;
+    document.getElementById('t_qp').value = val;
+    document.querySelectorAll('#tastingQPSelector .qp-option').forEach(opt => {
+        const isSelected = parseInt(opt.dataset.qp) === val;
+        opt.classList.toggle('active', isSelected);
+        opt.style.borderColor = isSelected ? 'var(--primary)' : 'var(--border)';
+        opt.style.background = isSelected ? 'rgba(128,0,32,0.06)' : 'transparent';
+    });
+}
+
+function addTastingTag(tag) {
+    if (!tag || currentTastingTags.has(tag)) return;
+    currentTastingTags.add(tag);
+    renderTastingTags();
+}
+
+function removeTastingTag(tag) {
+    currentTastingTags.delete(tag);
+    renderTastingTags();
+}
+
+function renderTastingTags() {
+    const cont = document.getElementById('tagsContainer');
+    if (!cont) return;
+    cont.innerHTML = '';
+    currentTastingTags.forEach(t => {
+        const span = document.createElement('span');
+        span.className = 'history-tag';
+        span.style.cssText = 'display:inline-flex; align-items:center; gap:4px; font-size:12px; padding:3px 8px; border-radius:12px; background:#f3f4f6; border:1px solid #d1d5db; color:#374151;';
+        span.innerHTML = `${escHtml(t)} <button type="button" style="background:none; border:none; color:#9ca3af; cursor:pointer; font-size:11px;" onclick="removeTastingTag('${escHtml(t)}')">×</button>`;
+        cont.appendChild(span);
+    });
 }
 
 function openTastingForBottle(bottleId) {
@@ -1230,23 +1846,23 @@ function openTastingForBottle(bottleId) {
 
     document.getElementById('t_date').value = new Date().toISOString().slice(0, 10);
     document.getElementById('t_comment').value = '';
-    currentTastingRating = 4;
-    highlightStars(4);
 
+    currentTastingRating = 8;
+    highlightTastingStars(8);
+
+    setTastingQP(0);
+    currentTastingTags.clear();
+    renderTastingTags();
+
+    const photoInput = document.getElementById('t_photo');
+    if (photoInput) photoInput.value = '';
     const prev = document.getElementById('photoPreview');
-    if (prev) prev.style.display = 'none';
+    if (prev) {
+        prev.src = '';
+        prev.style.display = 'none';
+    }
 
     document.getElementById('modalTasting').classList.remove('hidden');
-}
-
-function highlightStars(val) {
-    document.querySelectorAll('#modalTasting .star').forEach(s => {
-        const starVal = parseFloat(s.dataset.val);
-        if (starVal <= val) s.classList.add('active');
-        else s.classList.remove('active');
-    });
-    const starDisplay = document.getElementById('starDisplay');
-    if (starDisplay) starDisplay.textContent = `${val} / 5`;
 }
 
 async function submitTasting() {
@@ -1255,7 +1871,7 @@ async function submitTasting() {
     if (!bottle) return;
 
     const photoPrev = document.getElementById('photoPreview');
-    const photoData = (photoPrev && photoPrev.style.display !== 'none') ? photoPrev.src : null;
+    const photoData = (photoPrev && photoPrev.style.display !== 'none' && photoPrev.src) ? photoPrev.src : null;
 
     const tastingData = {
         bottle_id: bottle.id,
@@ -1269,6 +1885,7 @@ async function submitTasting() {
         },
         date_consommation: document.getElementById('t_date').value || new Date().toISOString().slice(0, 10),
         note: currentTastingRating || null,
+        qp: currentTastingQP || 0,
         commentaire: document.getElementById('t_comment').value.trim(),
         photo_base64: photoData,
         tags: Array.from(currentTastingTags)
@@ -1284,61 +1901,6 @@ async function submitTasting() {
     }
 }
 
-function renderHistoryFeed() {
-    const feed = document.getElementById('historyFeed');
-    if (!feed) return;
-
-    if (STATE.tastingLog.length === 0) {
-        feed.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-glass-cheers"></i>
-                <h3>Aucune dégustation enregistrée</h3>
-                <p>Ouvrez votre livre de cave et cliquez sur le verre à vin d'un flacon pour noter votre première dégustation.</p>
-            </div>
-        `;
-        return;
-    }
-
-    feed.innerHTML = STATE.tastingLog.map(t => {
-        const b = t.bottle_ref || {};
-        const starsHtml = '★'.repeat(Math.round(t.note || 0)) + '☆'.repeat(5 - Math.round(t.note || 0));
-        
-        return `
-            <div class="card" style="margin-bottom: 16px; padding: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div>
-                        <h3 style="font-family:'Playfair Display',serif; font-size: 18px; margin-bottom: 4px;">
-                            ${escHtml(b.nom || 'Vin')} ${b.millesime || ''}
-                        </h3>
-                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">
-                            ${b.type ? `<span class="badge ${WINE_COLORS[b.type]?.css || 'badge-rouge'}">${b.type}</span>` : ''}
-                            ${b.appellation ? `<span>${escHtml(b.appellation)}</span>` : ''}
-                            <span>• Dégusté le ${t.date_consommation}</span>
-                        </p>
-                    </div>
-                    <div style="color: #f59e0b; font-size: 18px; font-weight: 700;">
-                        ${starsHtml}
-                    </div>
-                </div>
-
-                ${t.commentaire ? `<p style="font-size: 14px; margin-top: 10px; color: #374151; font-style: italic;">« ${escHtml(t.commentaire)} »</p>` : ''}
-                
-                ${t.photo_base64 ? `
-                    <div style="margin-top: 12px;">
-                        <img src="${t.photo_base64}" style="max-height: 160px; border-radius: 8px; border: 1px solid var(--border);" alt="Photo dégustation">
-                    </div>
-                ` : ''}
-                
-                <div style="display: flex; justify-content: flex-end; margin-top: 12px; gap: 8px;">
-                    <button class="action-btn delete-btn" title="Supprimer la dégustation" onclick="deleteTasting('${t.id}')">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
 async function deleteTasting(id) {
     if (!confirm('Supprimer cette note de dégustation ?')) return;
     try {
@@ -1350,9 +1912,167 @@ async function deleteTasting(id) {
     }
 }
 
-function initEditTastingModal() {}
+// ── Modale d'Édition d'une Dégustation Passée ──
+function initEditTastingModal() {
+    const starContainer = document.getElementById('etStarContainer');
+    if (starContainer && starContainer.children.length === 0) {
+        for (let i = 1; i <= 10; i++) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'et-star';
+            btn.textContent = '★';
+            btn.dataset.val = i;
+            btn.style.cssText = 'background:none; border:none; cursor:pointer; font-size:20px; color:#d1d5db; padding:0 1px;';
+            btn.setAttribute('aria-label', `Note ${i} sur 10`);
+            btn.addEventListener('click', () => setEditRating(i));
+            btn.addEventListener('mouseenter', () => highlightEditStars(i));
+            btn.addEventListener('mouseleave', () => highlightEditStars(editTastingRating));
+            starContainer.appendChild(btn);
+        }
+    }
 
-// ==========================================
+    document.querySelectorAll('#modalEditTasting .qp-option').forEach(opt => {
+        opt.addEventListener('click', () => setEditQP(parseInt(opt.dataset.qp)));
+    });
+
+    const sugEl = document.getElementById('etTagSuggestions');
+    if (sugEl && sugEl.children.length === 0) {
+        TAG_SUGGESTIONS.forEach(tag => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.style.cssText = 'font-size:11px; padding:3px 8px; border:1px solid var(--border); border-radius:12px; cursor:pointer; background:#fff; margin-right:4px; margin-bottom:4px;';
+            btn.textContent = tag;
+            btn.onclick = () => addEditTag(tag);
+            sugEl.appendChild(btn);
+        });
+    }
+
+    const tagInput = document.getElementById('et_tag_input');
+    if (tagInput && !tagInput._bound) {
+        tagInput._bound = true;
+        tagInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addEditTag(tagInput.value.trim());
+                tagInput.value = '';
+            }
+        });
+    }
+}
+
+window.openEditTasting = (entryId) => {
+    const entry = STATE.tastingLog.find(e => e.id === entryId);
+    if (!entry) return;
+
+    initEditTastingModal();
+
+    editTastingRating = entry.note || 0;
+    editTastingTags   = [...(entry.tags || [])];
+    editTastingQP     = entry.qp || 0;
+
+    document.getElementById('et_entry_id').value = entryId;
+    document.getElementById('et_date').value = entry.date_consommation || new Date().toISOString().slice(0, 10);
+    document.getElementById('et_comment').value = entry.commentaire || '';
+
+    const ref = entry.bottle_ref || {};
+    document.getElementById('etWineName').textContent = ref.nom || '—';
+    const badgeClass = WINE_COLORS[ref.type]?.css || 'badge-rouge';
+    document.getElementById('etWineMeta').innerHTML = `
+        <span class="badge ${badgeClass}" style="font-size:10px;">${escHtml(ref.type || '')}</span>
+        <span style="margin-left:6px;color:#9ca3af;">${ref.millesime || ''} · ${escHtml(ref.region || '')}</span>
+        ${ref.prix ? `<span style="margin-left:6px;color:#9ca3af;">${ref.prix} €</span>` : ''}
+    `;
+
+    highlightEditStars(editTastingRating);
+    setEditQP(editTastingQP);
+    renderEditTags();
+    updateEditScoreDisplay();
+
+    document.getElementById('modalEditTasting').classList.remove('hidden');
+};
+
+window.closeEditTasting = () => {
+    document.getElementById('modalEditTasting').classList.add('hidden');
+};
+
+window.setEditRating = (val) => {
+    editTastingRating = val;
+    highlightEditStars(val);
+    updateEditScoreDisplay();
+};
+
+function highlightEditStars(val) {
+    document.querySelectorAll('#etStarContainer .et-star').forEach(s => {
+        const starVal = parseInt(s.dataset.val);
+        s.style.color = starVal <= val ? '#f59e0b' : '#d1d5db';
+    });
+}
+
+function updateEditScoreDisplay() {
+    const el = document.getElementById('etScoreDisplay');
+    if (el) {
+        el.textContent = editTastingRating > 0 ? `${editTastingRating} / 10` : 'Non noté';
+    }
+}
+
+function setEditQP(val) {
+    editTastingQP = val;
+    document.querySelectorAll('#modalEditTasting .qp-option').forEach(opt => {
+        const isSelected = parseInt(opt.dataset.qp) === val;
+        opt.style.borderColor = isSelected ? 'var(--primary)' : 'var(--border)';
+        opt.style.background = isSelected ? 'rgba(128,0,32,0.06)' : 'transparent';
+    });
+}
+
+window.addEditTag = (tag) => {
+    if (!tag || editTastingTags.includes(tag)) return;
+    editTastingTags.push(tag);
+    renderEditTags();
+};
+
+window.removeEditTag = (tag) => {
+    editTastingTags = editTastingTags.filter(t => t !== tag);
+    renderEditTags();
+};
+
+function renderEditTags() {
+    const cont = document.getElementById('etTagsContainer');
+    if (!cont) return;
+    cont.innerHTML = '';
+    editTastingTags.forEach(t => {
+        const span = document.createElement('span');
+        span.className = 'history-tag';
+        span.style.cssText = 'display:inline-flex; align-items:center; gap:4px; font-size:12px; padding:3px 8px; border-radius:12px; background:#f3f4f6; border:1px solid #d1d5db; color:#374151;';
+        span.innerHTML = `${escHtml(t)} <button type="button" style="background:none; border:none; color:#9ca3af; cursor:pointer; font-size:11px;" onclick="removeEditTag('${escHtml(t)}')">×</button>`;
+        cont.appendChild(span);
+    });
+}
+
+window.saveEditTasting = async () => {
+    const entryId = document.getElementById('et_entry_id').value;
+    if (!entryId) return;
+
+    const date_c = document.getElementById('et_date').value;
+    const comment = document.getElementById('et_comment').value.trim();
+
+    try {
+        await API.tastings.update(entryId, {
+            date_consommation: date_c,
+            note: editTastingRating || null,
+            qp: editTastingQP || 0,
+            commentaire: comment,
+            tags: editTastingTags
+        });
+        closeEditTasting();
+        showToast('Dégustation modifiée avec succès', 'success');
+        await loadAllUserData();
+    } catch (err) {
+        showToast(err.message || 'Erreur mise à jour dégustation', 'error');
+    }
+};
+
+window.removeTastingTag = removeTastingTag;
+
 // IMPORT & EXPORT DE LA CAVE
 // ==========================================
 

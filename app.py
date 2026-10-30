@@ -488,7 +488,7 @@ def get_tastings():
     db = get_request_db()
     cursor = db.cursor()
     cursor.execute('''
-        SELECT id, bottle_ref_json, date_consommation, note, commentaire, photo_base64, tags_json, created_at
+        SELECT id, bottle_ref_json, date_consommation, note, commentaire, photo_base64, tags_json, qp, created_at
         FROM tasting_log
         WHERE user_id = ?
         ORDER BY date_consommation DESC, created_at DESC
@@ -511,6 +511,7 @@ def get_tastings():
             'commentaire': r['commentaire'] or '',
             'photo_base64': r['photo_base64'],
             'tags': tags,
+            'qp': r['qp'] or 0,
             'created_at': r['created_at']
         })
     return jsonify(tastings)
@@ -528,6 +529,7 @@ def add_tasting():
     comment = data.get('commentaire', '').strip()
     photo = data.get('photo_base64')
     tags = json.dumps(data.get('tags', []))
+    qp = data.get('qp', 0)
 
     db = get_request_db()
     cursor = db.cursor()
@@ -537,9 +539,9 @@ def add_tasting():
         cursor.execute("UPDATE bottles SET statut = 'Bue' WHERE id = ? AND user_id = ?", (bottle_id, user_id))
 
     cursor.execute('''
-        INSERT OR REPLACE INTO tasting_log (id, user_id, bottle_ref_json, date_consommation, note, commentaire, photo_base64, tags_json)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (t_id, user_id, b_ref, date_c, note, comment, photo, tags))
+        INSERT OR REPLACE INTO tasting_log (id, user_id, bottle_ref_json, date_consommation, note, commentaire, photo_base64, tags_json, qp)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (t_id, user_id, b_ref, date_c, note, comment, photo, tags, qp))
     db.commit()
 
     return jsonify({'success': True, 'id': t_id}), 201
@@ -561,6 +563,7 @@ def update_tasting(tasting_id):
     photo = data.get('photo_base64')
     tags = json.dumps(data.get('tags')) if 'tags' in data else None
     date_c = data.get('date_consommation')
+    qp = data.get('qp')
 
     updates = []
     params = []
@@ -579,6 +582,9 @@ def update_tasting(tasting_id):
     if date_c is not None:
         updates.append('date_consommation = ?')
         params.append(date_c)
+    if qp is not None:
+        updates.append('qp = ?')
+        params.append(qp)
 
     if updates:
         params.extend([tasting_id, user_id])
@@ -662,8 +668,8 @@ def import_data():
     for t in raw_tastings:
         t_id = t.get('id') or f"tl_{int(datetime.utcnow().timestamp()*1000)}_{imported_tastings_count}"
         cursor.execute('''
-            INSERT OR REPLACE INTO tasting_log (id, user_id, bottle_ref_json, date_consommation, note, commentaire, photo_base64, tags_json)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT OR REPLACE INTO tasting_log (id, user_id, bottle_ref_json, date_consommation, note, commentaire, photo_base64, tags_json, qp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             t_id,
             user_id,
@@ -672,7 +678,8 @@ def import_data():
             t.get('note'),
             t.get('commentaire', ''),
             t.get('photo_base64'),
-            json.dumps(t.get('tags', []))
+            json.dumps(t.get('tags', [])),
+            t.get('qp', 0)
         ))
         imported_tastings_count += 1
 
@@ -725,7 +732,7 @@ def export_data():
             'date_ajout': r['date_ajout']
         })
 
-    cursor.execute('SELECT id, bottle_ref_json, date_consommation, note, commentaire, photo_base64, tags_json, created_at FROM tasting_log WHERE user_id = ?', (user_id,))
+    cursor.execute('SELECT id, bottle_ref_json, date_consommation, note, commentaire, photo_base64, tags_json, qp, created_at FROM tasting_log WHERE user_id = ?', (user_id,))
     tastings = []
     for r in cursor.fetchall():
         try:
@@ -744,6 +751,7 @@ def export_data():
             'commentaire': r['commentaire'],
             'photo_base64': r['photo_base64'],
             'tags': tags,
+            'qp': r['qp'] or 0,
             'created_at': r['created_at']
         })
 
