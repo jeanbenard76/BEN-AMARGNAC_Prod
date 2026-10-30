@@ -56,12 +56,16 @@ function showAuthModal(tab = 'login') {
     const modal = document.getElementById('authOverlay');
     if (!modal) return;
     modal.classList.remove('hidden');
+    modal.style.setProperty('display', 'flex', 'important');
     switchAuthTab(tab);
 }
 
 function hideAuthModal() {
     const modal = document.getElementById('authOverlay');
-    if (modal) modal.classList.add('hidden');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.style.setProperty('display', 'none', 'important');
+    }
 }
 
 function switchAuthTab(tab) {
@@ -71,15 +75,27 @@ function switchAuthTab(tab) {
     const tabRegisterBtn = document.getElementById('tabRegisterBtn');
 
     if (tab === 'login') {
-        loginForm.classList.remove('hidden');
-        registerForm.classList.add('hidden');
-        tabLoginBtn.classList.add('active');
-        tabRegisterBtn.classList.remove('active');
+        if (loginForm) {
+            loginForm.classList.remove('hidden');
+            loginForm.style.setProperty('display', 'block', 'important');
+        }
+        if (registerForm) {
+            registerForm.classList.add('hidden');
+            registerForm.style.setProperty('display', 'none', 'important');
+        }
+        if (tabLoginBtn) tabLoginBtn.classList.add('active');
+        if (tabRegisterBtn) tabRegisterBtn.classList.remove('active');
     } else {
-        loginForm.classList.add('hidden');
-        registerForm.classList.remove('hidden');
-        tabLoginBtn.classList.remove('active');
-        tabRegisterBtn.classList.add('active');
+        if (loginForm) {
+            loginForm.classList.add('hidden');
+            loginForm.style.setProperty('display', 'none', 'important');
+        }
+        if (registerForm) {
+            registerForm.classList.remove('hidden');
+            registerForm.style.setProperty('display', 'block', 'important');
+        }
+        if (tabLoginBtn) tabLoginBtn.classList.remove('active');
+        if (tabRegisterBtn) tabRegisterBtn.classList.add('active');
     }
 }
 
