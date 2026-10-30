@@ -769,127 +769,184 @@ def export_data():
 
 # ================= ESTIMATION COTE IDEALWINE & MARCHE =================
 
-BENCHMARK_CRUS = {
-    'petrus': 3600,
-    'romanee-conti': 16000,
+import unicodedata
+
+def normalize_wine_name(name):
+    if not name:
+        return ""
+    nfkd = unicodedata.normalize('NFKD', str(name))
+    no_accent = "".join([c for c in nfkd if not unicodedata.combining(c)])
+    return no_accent.lower().replace('-', ' ').strip()
+
+# Cotes réelles de référence du marché d'enchères (iDealwine, Sotheby's, Wine-Searcher)
+# Basées sur les millésimes matures classiques (référence 1985 = base 1.0)
+CRUS_AUCTION_BASELINE = {
+    # 1ers Grands Crus Classés Bordeaux
+    'latour': 420,
+    'chateau latour': 420,
+    'margaux': 410,
+    'chateau margaux': 410,
+    'mouton rothschild': 410,
+    'chateau mouton rothschild': 410,
+    'mouton': 410,
+    'haut brion': 415,
+    'chateau haut brion': 415,
+    'lafite rothschild': 540,
+    'chateau lafite rothschild': 540,
+    'lafite': 540,
+    'cheval blanc': 510,
+    'chateau cheval blanc': 510,
+    'ausone': 480,
+    'chateau ausone': 480,
+    'petrus': 2600,
+    'chateau petrus': 2600,
+    'le pin': 2200,
+    'yquem': 290,
+    "d'yquem": 290,
+    'chateau d yquem': 290,
+
+    # Seconds Vins
+    'forts de latour': 135,
+    'les forts de latour': 135,
+    'pavillon rouge': 130,
+    'carruades de lafite': 220,
+    'carruades': 220,
+    'petit mouton': 180,
+    'bahans haut brion': 110,
+    'clarence de haut brion': 110,
+
+    # 2e à 5e Grands Crus Classés Bordeaux
+    'leoville las cases': 165,
+    'leoville poyferre': 110,
+    'leoville barton': 98,
+    'pichon baron': 140,
+    'pichon comtesse': 155,
+    'pichon longueville': 145,
+    'cos d estournel': 150,
+    'montrose': 145,
+    'palmer': 220,
+    'chateau palmer': 220,
+    'ducru beaucaillou': 140,
+    'lynch bages': 140,
+    'chateau lynch bages': 140,
+    'pontet canet': 110,
+    'chateau pontet canet': 110,
+    'talbot': 75,
+    'gruaud larose': 85,
+    'calon segur': 90,
+    'smith haut lafitte': 95,
+    'pape clement': 95,
+    'figeac': 160,
+    'angelus': 280,
+    'pavie': 260,
+
+    # Bourgogne prestigieux
     'romanee conti': 16000,
+    'la tache': 4200,
+    'richebourg': 2600,
+    'romanee saint vivant': 2100,
+    'grands echezeaux': 1800,
     'drc': 12000,
-    'leroy': 4200,
-    'rousseau': 2600,
-    'latour': 750,
-    'lafite': 850,
-    'margaux': 720,
-    'mouton': 680,
-    'haut-brion': 620,
-    'haut brion': 620,
-    'cheval blanc': 750,
-    'ausone': 700,
-    'le pin': 2800,
-    'yquem': 390,
-    "d'yquem": 390,
-    'dujac': 480,
-    'roumier': 1200,
-    'dom perignon': 240,
-    'cristal': 290,
-    'krug': 270,
-    'salon': 850,
-    'comtes de champagne': 190,
+    'domaine leroy': 4500,
+    'leroy': 3500,
+    'roumier': 1400,
+    'armand rousseau': 2400,
+    'chambertin': 450,
+    'clos de tart': 380,
+    'dujac': 390,
+    'clos de la roche': 320,
+    'meursault': 95,
+    'corton charlemagne': 190,
+    'montrachet': 1200,
+
+    # Rhône & autres pépites
     'rayas': 1200,
     'chateau de rayas': 1200,
-    'chave': 380,
-    'guigal la mouline': 420,
-    'guigal la landonne': 420,
-    'guigal la turque': 420,
-    'clape': 140,
+    'guigal la mouline': 390,
+    'guigal la landonne': 390,
+    'guigal la turque': 390,
+    'chave': 360,
+    'chapoutier ermitage': 190,
+    'beaucastel': 90,
+    'hommage a jacques perrin': 320,
     'trevallon': 120,
-    'grange des peres': 320,
-    'clos rougeard': 350,
-    'overnoy': 450,
-    'selosse': 480,
-    'puligny-montrachet': 125,
-    'puligny montrachet': 125,
-    'chassagne-montrachet': 95,
-    'meursault': 110,
-    'corton-charlemagne': 220,
-    'montrachet': 1200,
-    'chambertin': 450,
-    'clos de vougeot': 190,
-    'echezeaux': 320,
-    'vosne-romanee': 160,
-    'gevrey-chambertin': 95,
-    'chambolle-musigny': 115,
-    'nuits-saint-georges': 85,
-    'pommard': 75,
-    'volnay': 80,
-    'pauillac': 75,
-    'saint-julien': 65,
-    'saint-estephe': 55,
-    'pessac-leognan': 60,
-    'saint-emilion': 70,
-    'pomerol': 90,
-    'chateauneuf-du-pape': 60,
-    'cote-rotie': 85,
-    'hermitage': 110,
-    'cornas': 65,
-    'condrieu': 60,
-    'sancerre': 32,
-    'pouilly-fume': 30,
-    'chablis': 38,
-    'chablis grand cru': 95
+    'grange des peres': 310,
+    'clos rougeard': 340,
+
+    # Champagnes
+    'dom perignon': 220,
+    'cristal': 260,
+    'krug': 250,
+    'salon': 850,
+    'comtes de champagne': 175,
+    'selosse': 480
+}
+
+# Multiplicateurs de millésime par rapport au millésime classique 1985
+VINTAGE_MULTIPLIERS = {
+    1945: 5.0, 1961: 4.0, 1982: 3.5, 1989: 1.85, 1990: 1.9,
+    2000: 2.1, 2005: 1.9, 2009: 2.2, 2010: 2.3, 2015: 1.5, 2016: 1.6,
+    1985: 1.0, 1986: 1.2, 1988: 1.05, 1995: 1.15, 1996: 1.25, 1998: 1.1,
+    2001: 1.1, 2003: 1.15, 2008: 1.05, 2018: 1.35, 2019: 1.35, 2020: 1.4,
+    1984: 0.75, 1987: 0.8, 1991: 0.75, 1992: 0.7, 1993: 0.75, 1994: 0.8,
+    1997: 0.8, 2002: 0.85, 2004: 0.95, 2007: 0.85, 2013: 0.75
 }
 
 def calculate_market_estimate(nom, millesime, appellation, region):
-    nom_lower = (nom or '').lower()
-    app_lower = (appellation or '').lower()
-    reg_lower = (region or '').lower()
-    text = f"{nom_lower} {app_lower} {reg_lower}"
+    norm_nom = normalize_wine_name(nom)
+    norm_app = normalize_wine_name(appellation)
+    norm_reg = normalize_wine_name(region)
+    full_text = f"{norm_nom} {norm_app} {norm_reg}"
 
+    # 1. Recherche par correspondance dans les crus cotés (tri par longueur décroissante de clé pour matcher les plus spécifiques d'abord)
     base_price = None
-    for k, v in BENCHMARK_CRUS.items():
-        if k in text:
-            base_price = v
+    sorted_crus = sorted(CRUS_AUCTION_BASELINE.keys(), key=lambda k: len(k), reverse=True)
+    for k in sorted_crus:
+        if k in norm_nom or k in full_text:
+            base_price = CRUS_AUCTION_BASELINE[k]
             break
 
+    # 2. Si non trouvé dans les crus répertoriés, estimation selon l'appellation et le statut
     if base_price is None:
-        if 'grand cru' in text:
-            base_price = 110
-        elif 'premier cru' in text or '1er cru' in text:
-            base_price = 65
-        elif 'champagne' in text:
+        if 'grand cru' in full_text:
+            base_price = 85
+        elif 'premier cru' in full_text or '1er cru' in full_text:
             base_price = 55
-        elif 'bourgogne' in text:
+        elif 'pauillac' in full_text or 'pomerol' in full_text:
+            base_price = 50
+        elif 'saint julien' in full_text or 'margaux' in full_text or 'saint emilion' in full_text:
             base_price = 45
-        elif 'bordeaux' in text:
-            base_price = 35
-        elif 'rhone' in text or 'rhône' in text:
-            base_price = 32
+        elif 'champagne' in full_text:
+            base_price = 48
+        elif 'chateauneuf' in full_text:
+            base_price = 42
+        elif 'bourgogne' in full_text:
+            base_price = 38
+        elif 'bordeaux' in full_text:
+            base_price = 24
+        elif 'rhone' in full_text:
+            base_price = 22
         else:
-            base_price = 28
+            base_price = 20
 
-    current_year = datetime.utcnow().year
+    # 3. Application du coefficient de millésime
     try:
         y = int(millesime)
-        age = max(0, current_year - y) if 1900 <= y <= current_year else 0
     except Exception:
-        age = 0
+        y = None
 
-    if age > 0:
-        if age <= 5:
-            mult = 1.0
-        elif age <= 10:
-            mult = 1.0 + (age - 5) * 0.025
-        elif age <= 20:
-            mult = 1.12 + (age - 10) * 0.035
-        elif age <= 40:
-            mult = 1.47 + (age - 20) * 0.045
-        else:
-            mult = 2.37 + (age - 40) * 0.05
+    if y and y in VINTAGE_MULTIPLIERS:
+        vint_mult = VINTAGE_MULTIPLIERS[y]
+    elif y and y < 1980:
+        vint_mult = 1.35
+    elif y and y > 2010:
+        vint_mult = 1.25
     else:
-        mult = 1.0
+        vint_mult = 1.0
 
-    est = round(base_price * mult)
-    low = round(est * 0.88)
-    high = round(est * 1.15)
+    est = round(base_price * vint_mult)
+    low = round(est * 0.90)
+    high = round(est * 1.12)
     return est, low, high
 
 @app.route('/api/wine/idealwine-estimate', methods=['GET'])

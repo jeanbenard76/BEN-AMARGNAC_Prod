@@ -12,7 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 
 <!-- Feuilles de styles -->
-<link rel="stylesheet" href="/static/css/style.css?v=3.3">
+<link rel="stylesheet" href="/static/css/style.css?v=3.4">
 </head>
 <body>
 
@@ -324,7 +324,7 @@
         </div>
 
         <!-- Top vins + filtres -->
-        <div style="display:grid; grid-template-columns:1fr 280px; gap:16px; margin-bottom:24px;">
+        <div class="hist-filters-top-container">
             <!-- Filtre bar complète -->
             <div class="hist-filter-bar" role="search" aria-label="Filtres historique" style="flex-direction:column; align-items:stretch; gap:12px;">
                 <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
@@ -344,7 +344,7 @@
                         <div id="slicerType" class="slicer-group" role="group" aria-label="Filtrer par type"></div>
                     </div>
 
-                    <div style="width:1px;background:var(--border);align-self:stretch;"></div>
+                    <div class="slicer-divider" style="width:1px;background:var(--border);align-self:stretch;"></div>
 
                     <!-- Années -->
                     <div>
@@ -352,7 +352,7 @@
                         <div id="slicerYear" class="slicer-group" role="group" aria-label="Filtrer par année"></div>
                     </div>
 
-                    <div style="width:1px;background:var(--border);align-self:stretch;"></div>
+                    <div class="slicer-divider" style="width:1px;background:var(--border);align-self:stretch;"></div>
 
                     <!-- Mois -->
                     <div>
@@ -360,7 +360,7 @@
                         <div id="slicerMonth" class="slicer-group" role="group" aria-label="Filtrer par mois"></div>
                     </div>
 
-                    <div style="width:1px;background:var(--border);align-self:stretch;"></div>
+                    <div class="slicer-divider" style="width:1px;background:var(--border);align-self:stretch;"></div>
 
                     <!-- Note min -->
                     <div>
@@ -374,7 +374,7 @@
                         </div>
                     </div>
 
-                    <div style="width:1px;background:var(--border);align-self:stretch;"></div>
+                    <div class="slicer-divider" style="width:1px;background:var(--border);align-self:stretch;"></div>
 
                     <!-- Q/P -->
                     <div>
@@ -950,10 +950,10 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <!-- Application Scripts -->
-<script src="/static/js/api.js?v=3.3"></script>
-<script src="/static/js/state.js?v=3.3"></script>
-<script src="/static/js/visualizer3d.js?v=3.3"></script>
-<script src="/static/js/app.js?v=3.3"></script>
+<script src="/static/js/api.js?v=3.4"></script>
+<script src="/static/js/state.js?v=3.4"></script>
+<script src="/static/js/visualizer3d.js?v=3.4"></script>
+<script src="/static/js/app.js?v=3.4"></script>
 
 </body>
 </html>

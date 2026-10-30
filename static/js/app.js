@@ -745,24 +745,30 @@ function setupFormListeners() {
                 const res = await API.wine.getEstimate(nom, millesime, appellation, region);
                 if (res.success) {
                     const priceInput = document.getElementById('f_prix');
-                    if (priceInput && (!priceInput.value || Number(priceInput.value) === 0)) {
+                    if (priceInput) {
                         priceInput.value = res.estimate_price;
+                        priceInput.style.backgroundColor = 'rgba(16, 185, 129, 0.15)';
+                        setTimeout(() => priceInput.style.backgroundColor = '', 1500);
                     }
 
                     const hintEl = document.getElementById('idealwineEstimateHint');
                     if (hintEl) {
                         hintEl.style.display = 'block';
                         hintEl.innerHTML = `
-                            <span style="color:#059669; font-weight:600;">
-                                <i class="fas fa-check-circle"></i> Cote estimée : ~${res.estimate_price} €
-                            </span>
-                            <span style="color:#6b7280; font-size:10px;">(${res.low_estimate} € - ${res.high_estimate} €)</span>
-                            <a href="${res.idealwine_url}" target="_blank" rel="noopener noreferrer" style="color:var(--primary); font-weight:600; margin-left:6px; text-decoration:none;">
-                                Ouvrir iDealwine <i class="fas fa-external-link-alt" style="font-size:10px;"></i>
-                            </a>
+                            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-top:6px; background:#f0fdf4; border:1px solid #bbf7d0; padding:8px 12px; border-radius:8px;">
+                                <div>
+                                    <span style="color:#15803d; font-weight:700; font-size:13px;">
+                                        <i class="fas fa-check-circle"></i> Cote de référence : ~${res.estimate_price} €
+                                    </span>
+                                    <span style="color:#4b5563; font-size:11px; margin-left:4px;">(Fourchette : ${res.low_estimate} € - ${res.high_estimate} €)</span>
+                                </div>
+                                <a href="${res.idealwine_url}" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:5px; font-size:11px; color:#ffffff; background:#800020; padding:4px 10px; border-radius:6px; font-weight:600; text-decoration:none;">
+                                    Vérifier sur iDealwine <i class="fas fa-external-link-alt" style="font-size:9px;"></i>
+                                </a>
+                            </div>
                         `;
                     }
-                    showToast(`Cote estimée : ~${res.estimate_price} € pour ${nom} ${millesime}`, 'success');
+                    showToast(`Cote appliquée : ~${res.estimate_price} € (${nom} ${millesime})`, 'success');
                 }
             } catch (err) {
                 showToast('Impossible d\'obtenir la cote pour ce flacon', 'error');

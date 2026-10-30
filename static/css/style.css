@@ -1186,6 +1186,185 @@ th {
         font-size: 13px !important;
         padding: 10px 16px !important;
     }
+
+    /* 13. JOURNAL DES DÉGUSTATIONS SUR MOBILE (HISTORIQUE) */
+    .hist-kpi-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+        margin-bottom: 16px !important;
+    }
+    .hist-kpi-grid .hist-kpi {
+        padding: 12px 14px !important;
+        border-radius: 10px !important;
+    }
+    .hist-kpi-grid .hist-kpi:last-child {
+        grid-column: span 2 !important;
+    }
+    .hist-kpi .hk-value {
+        font-size: 20px !important;
+        font-weight: 700 !important;
+    }
+    .hist-kpi .hk-label {
+        font-size: 11px !important;
+        font-weight: 600 !important;
+    }
+    .hist-kpi .hk-sub {
+        font-size: 10px !important;
+        opacity: 0.8 !important;
+    }
+
+    .hist-charts-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+        margin-bottom: 16px !important;
+    }
+    .hist-chart-card {
+        padding: 14px 16px !important;
+        border-radius: 10px !important;
+    }
+    .hist-chart-wrapper {
+        height: 190px !important;
+    }
+
+    .hist-filters-top-container {
+        grid-template-columns: 1fr !important;
+        gap: 14px !important;
+        margin-bottom: 18px !important;
+    }
+
+    .hist-filter-bar {
+        padding: 14px 12px !important;
+        border-radius: 10px !important;
+        gap: 10px !important;
+    }
+    .hist-filter-bar .slicer-divider {
+        display: none !important;
+    }
+
+    .slicer-group {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 5px !important;
+    }
+    .slicer-chip {
+        padding: 5px 9px !important;
+        font-size: 11px !important;
+        border-radius: 6px !important;
+    }
+
+    .star-filter-group {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 4px !important;
+    }
+    .star-filter-btn {
+        padding: 5px 8px !important;
+        font-size: 11px !important;
+        border-radius: 6px !important;
+    }
+
+    /* Fiches du journal de dégustation */
+    .history-card {
+        flex-direction: column !important;
+        padding: 14px 16px !important;
+        border-radius: 12px !important;
+        margin-bottom: 12px !important;
+    }
+    .history-card-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 10px !important;
+    }
+    .history-card-right {
+        width: 100% !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        border-top: 1px solid #f1f5f9 !important;
+        padding-top: 8px !important;
+        margin-top: 4px !important;
+    }
+    .history-card-photo {
+        width: 100% !important;
+        justify-content: center !important;
+        padding: 10px 0 0 0 !important;
+    }
+    .history-card-photo img {
+        max-height: 180px !important;
+        width: 100% !important;
+        object-fit: contain !important;
+        border-radius: 8px !important;
+    }
+
+    /* 14. MODALES DE DÉGUSTATION SUR MOBILE */
+    .tasting-modal, .edit-tasting-modal {
+        max-height: 92dvh !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+        border-radius: 20px 20px 0 0 !important;
+    }
+    .tasting-body, .et-body {
+        flex: 1 !important;
+        overflow-y: auto !important;
+        padding: 14px 16px !important;
+        -webkit-overflow-scrolling: touch;
+    }
+    .tasting-wine-header {
+        padding: 12px 16px !important;
+    }
+    .tasting-wine-header .wine-name {
+        font-size: 15px !important;
+    }
+    .tasting-section {
+        margin-bottom: 14px !important;
+    }
+
+    /* Étoiles 1-10 adaptées au toucher mobile */
+    .star-rating, #etStarContainer {
+        display: flex !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+        font-size: 24px !important;
+        margin-bottom: 6px;
+    }
+    .star-rating .star, #etStarContainer .et-star {
+        padding: 4px 1px !important;
+        font-size: 24px !important;
+        touch-action: manipulation;
+    }
+
+    /* Sélecteur Q/P en grille 5 colonnes fluide */
+    .qp-selector, #tastingQPSelector, #etQPSelector {
+        display: grid !important;
+        grid-template-columns: repeat(5, 1fr) !important;
+        gap: 4px !important;
+        width: 100% !important;
+    }
+    .qp-option {
+        min-width: 0 !important;
+        padding: 7px 2px !important;
+        font-size: 10px !important;
+        text-align: center !important;
+        border-radius: 6px !important;
+    }
+    .qp-emoji {
+        font-size: 16px !important;
+        display: block !important;
+        margin-bottom: 2px !important;
+    }
+
+    /* Tags */
+    .tags-suggestions, #tagSuggestions, #etTagSuggestions {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+    }
+    .tag-suggestion, .et-tag-sug-btn {
+        padding: 5px 8px !important;
+        font-size: 11px !important;
+        border-radius: 12px !important;
+    }
 }
 
 
@@ -1591,4 +1770,11 @@ th {
     border: 1px solid #e2e8f0;
     border-radius: 12px;
     padding: 16px 18px;
+}
+
+.hist-filters-top-container {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 16px;
+    margin-bottom: 24px;
 }
