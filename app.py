@@ -1,18 +1,43 @@
 import os
 import json
-import sqlite3
+import time
 from datetime import datetime
 from functools import wraps
+from collections import defaultdict
 from flask import Flask, request, jsonify, session, render_template, send_from_directory, g
 from werkzeug.security import generate_password_hash, check_password_hash
 from database import get_db, init_db, create_default_zones_for_user
 
+# Toujours initialiser la base de données au lancement (Gunicorn & dev)
+init_db()
+
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = os.environ.get('SECRET_KEY', 'benarmagnac_super_secret_vps_key_2026_change_in_prod')
-app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024  # 32 MB max for photo uploads
+app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024  # 32 MB max
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['PERMANENT_SESSION_LIFETIME'] = 3600 * 24 * 30  # 30 jours
+
+# ================= RATE LIMITING (ANTI-BRUTEFORCE) =================
+# Limite les tentatives par IP (max 5 échecs par 60 secondes)
+FAILED_ATTEMPTS = defaultdict(list)
+
+def check_rate_limit(ip, max_attempts=5, window_seconds=60):
+    now = time.time()
+    attempts = [t for t in FAILED_ATTEMPTS[ip] if now - t < window_seconds]
+    FAILED_ATTEMPTS[ip] = attempts
+    return len(attempts) < max_attempts
+
+def record_failed_attempt(ip):
+    FAILED_ATTEMPTS[ip].append(time.time())
+
+def clear_failed_attempts(ip):
+    FAILED_ATTEMPTS.pop(ip, None)
+
+def get_client_ip():
+    if request.headers.get('X-Forwarded-For'):
+        return request.headers.get('X-Forwarded-For').split(',')[0].strip()
+    return request.remote_addr or '127.0.0.1'
 
 def get_request_db():
     if 'db' not in g:
@@ -37,6 +62,10 @@ def login_required(f):
 
 @app.route('/api/auth/register', methods=['POST'])
 def register():
+    client_ip = get_client_ip()
+    if not check_rate_limit(client_ip, max_attempts=10, window_seconds=60):
+        return jsonify({'error': 'Trop de tentatives d\'inscription. Veuillez patienter 1 minute.'}), 429
+
     data = request.get_json() or {}
     email = data.get('email', '').strip().lower()
     password = data.get('password', '').strip()
@@ -51,19 +80,23 @@ def register():
     cursor = db.cursor()
     cursor.execute('SELECT id FROM users WHERE email = ?', (email,))
     if cursor.fetchone():
+        record_failed_attempt(client_ip)
         return jsonify({'error': 'Un compte existe déjà avec cette adresse email'}), 409
 
     hashed_pw = generate_password_hash(password)
-    cursor.execute(
-        'INSERT INTO users (email, password_hash, cave_name) VALUES (?, ?, ?)',
-        (email, hashed_pw, cave_name)
-    )
-    user_id = cursor.lastrowid
-    db.commit()
+    try:
+        cursor.execute(
+            'INSERT INTO users (email, password_hash, cave_name) VALUES (?, ?, ?)',
+            (email, hashed_pw, cave_name)
+        )
+        user_id = cursor.lastrowid
+        create_default_zones_for_user(user_id, conn=db)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        return jsonify({'error': f"Erreur base de données: {str(e)}"}), 500
 
-    # Create default cellar layout & storage zones
-    create_default_zones_for_user(user_id)
-
+    clear_failed_attempts(client_ip)
     session.permanent = True
     session['user_id'] = user_id
 
@@ -79,6 +112,10 @@ def register():
 
 @app.route('/api/auth/login', methods=['POST'])
 def login():
+    client_ip = get_client_ip()
+    if not check_rate_limit(client_ip, max_attempts=5, window_seconds=60):
+        return jsonify({'error': 'Trop d\'essais infructueux. Veuillez patienter 1 minute avant de réessayer.'}), 429
+
     data = request.get_json() or {}
     email = data.get('email', '').strip().lower()
     password = data.get('password', '').strip()
@@ -92,8 +129,10 @@ def login():
     user = cursor.fetchone()
 
     if not user or not check_password_hash(user['password_hash'], password):
+        record_failed_attempt(client_ip)
         return jsonify({'error': 'Email ou mot de passe incorrect'}), 401
 
+    clear_failed_attempts(client_ip)
     session.permanent = True
     session['user_id'] = user['id']
 
@@ -192,7 +231,7 @@ def get_zones():
         zones.append({
             'id': r['id'],
             'name': r['name'],
-            'type': r['type'], # 'losange', 'etagere', 'cartons', 'armoire'
+            'type': r['type'],
             'columns': r['columns'],
             'rows': r['rows'],
             'capacity_per_slot': r['capacity_per_slot'],
@@ -354,7 +393,6 @@ def add_bottle():
     apogee_debut = int(data.get('apogee_debut')) if data.get('apogee_debut') else None
     apogee_fin = int(data.get('apogee_fin')) if data.get('apogee_fin') else None
 
-    # Emplacement
     emp = data.get('emplacement', {})
     zone_id = emp.get('zone_id') or data.get('zone_id')
     mur = int(emp.get('mur') or data.get('mur') or 1)
@@ -494,7 +532,6 @@ def add_tasting():
     db = get_request_db()
     cursor = db.cursor()
 
-    # If bottle_id provided, mark that bottle as 'Bue'
     bottle_id = data.get('bottle_id')
     if bottle_id:
         cursor.execute("UPDATE bottles SET statut = 'Bue' WHERE id = ? AND user_id = ?", (bottle_id, user_id))
@@ -568,14 +605,12 @@ def import_data():
     user_id = session['user_id']
     payload = request.get_json() or {}
 
-    # Supports either raw array of bottles OR { inventory: [...], tastingLog: [...] }
     raw_bottles = payload if isinstance(payload, list) else payload.get('inventory', [])
     raw_tastings = [] if isinstance(payload, list) else payload.get('tastingLog', [])
 
     db = get_request_db()
     cursor = db.cursor()
 
-    # Find user zones to map legacy mur 1/2/3
     cursor.execute('SELECT id, name, type FROM cellar_zones WHERE user_id = ? ORDER BY id ASC', (user_id,))
     zones = cursor.fetchall()
     default_zone_id = zones[0]['id'] if zones else None
@@ -655,15 +690,12 @@ def export_data():
     db = get_request_db()
     cursor = db.cursor()
 
-    # User info
     cursor.execute('SELECT email, cave_name FROM users WHERE id = ?', (user_id,))
     u = cursor.fetchone()
 
-    # Zones
     cursor.execute('SELECT id, name, type, columns, rows, capacity_per_slot, config_json FROM cellar_zones WHERE user_id = ?', (user_id,))
     zones = [dict(r) for r in cursor.fetchall()]
 
-    # Bottles
     cursor.execute('''
         SELECT id, nom, appellation, millesime, type, region, prix,
                apogee_debut, apogee_fin, zone_id, mur, col, lig, carton_label, statut, notes, date_ajout
@@ -693,7 +725,6 @@ def export_data():
             'date_ajout': r['date_ajout']
         })
 
-    # Tastings
     cursor.execute('SELECT id, bottle_ref_json, date_consommation, note, commentaire, photo_base64, tags_json, created_at FROM tasting_log WHERE user_id = ?', (user_id,))
     tastings = []
     for r in cursor.fetchall():
@@ -734,7 +765,5 @@ def index():
     return render_template('index.html')
 
 if __name__ == '__main__':
-    init_db()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
-
