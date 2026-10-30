@@ -758,6 +758,160 @@ def export_data():
 
     return jsonify(export_obj)
 
+
+# ================= ESTIMATION COTE IDEALWINE & MARCHE =================
+
+BENCHMARK_CRUS = {
+    'petrus': 3600,
+    'romanee-conti': 16000,
+    'romanee conti': 16000,
+    'drc': 12000,
+    'leroy': 4200,
+    'rousseau': 2600,
+    'latour': 750,
+    'lafite': 850,
+    'margaux': 720,
+    'mouton': 680,
+    'haut-brion': 620,
+    'haut brion': 620,
+    'cheval blanc': 750,
+    'ausone': 700,
+    'le pin': 2800,
+    'yquem': 390,
+    "d'yquem": 390,
+    'dujac': 480,
+    'roumier': 1200,
+    'dom perignon': 240,
+    'cristal': 290,
+    'krug': 270,
+    'salon': 850,
+    'comtes de champagne': 190,
+    'rayas': 1200,
+    'chateau de rayas': 1200,
+    'chave': 380,
+    'guigal la mouline': 420,
+    'guigal la landonne': 420,
+    'guigal la turque': 420,
+    'clape': 140,
+    'trevallon': 120,
+    'grange des peres': 320,
+    'clos rougeard': 350,
+    'overnoy': 450,
+    'selosse': 480,
+    'puligny-montrachet': 125,
+    'puligny montrachet': 125,
+    'chassagne-montrachet': 95,
+    'meursault': 110,
+    'corton-charlemagne': 220,
+    'montrachet': 1200,
+    'chambertin': 450,
+    'clos de vougeot': 190,
+    'echezeaux': 320,
+    'vosne-romanee': 160,
+    'gevrey-chambertin': 95,
+    'chambolle-musigny': 115,
+    'nuits-saint-georges': 85,
+    'pommard': 75,
+    'volnay': 80,
+    'pauillac': 75,
+    'saint-julien': 65,
+    'saint-estephe': 55,
+    'pessac-leognan': 60,
+    'saint-emilion': 70,
+    'pomerol': 90,
+    'chateauneuf-du-pape': 60,
+    'cote-rotie': 85,
+    'hermitage': 110,
+    'cornas': 65,
+    'condrieu': 60,
+    'sancerre': 32,
+    'pouilly-fume': 30,
+    'chablis': 38,
+    'chablis grand cru': 95
+}
+
+def calculate_market_estimate(nom, millesime, appellation, region):
+    nom_lower = (nom or '').lower()
+    app_lower = (appellation or '').lower()
+    reg_lower = (region or '').lower()
+    text = f"{nom_lower} {app_lower} {reg_lower}"
+
+    base_price = None
+    for k, v in BENCHMARK_CRUS.items():
+        if k in text:
+            base_price = v
+            break
+
+    if base_price is None:
+        if 'grand cru' in text:
+            base_price = 110
+        elif 'premier cru' in text or '1er cru' in text:
+            base_price = 65
+        elif 'champagne' in text:
+            base_price = 55
+        elif 'bourgogne' in text:
+            base_price = 45
+        elif 'bordeaux' in text:
+            base_price = 35
+        elif 'rhone' in text or 'rhône' in text:
+            base_price = 32
+        else:
+            base_price = 28
+
+    current_year = datetime.utcnow().year
+    try:
+        y = int(millesime)
+        age = max(0, current_year - y) if 1900 <= y <= current_year else 0
+    except Exception:
+        age = 0
+
+    if age > 0:
+        if age <= 5:
+            mult = 1.0
+        elif age <= 10:
+            mult = 1.0 + (age - 5) * 0.025
+        elif age <= 20:
+            mult = 1.12 + (age - 10) * 0.035
+        elif age <= 40:
+            mult = 1.47 + (age - 20) * 0.045
+        else:
+            mult = 2.37 + (age - 40) * 0.05
+    else:
+        mult = 1.0
+
+    est = round(base_price * mult)
+    low = round(est * 0.88)
+    high = round(est * 1.15)
+    return est, low, high
+
+@app.route('/api/wine/idealwine-estimate', methods=['GET'])
+@login_required
+def estimate_wine_route():
+    nom = request.args.get('nom', '').strip()
+    millesime = request.args.get('millesime', '').strip()
+    appellation = request.args.get('appellation', '').strip()
+    region = request.args.get('region', '').strip()
+
+    if not nom:
+        return jsonify({'error': 'Nom du flacon requis'}), 400
+
+    est_price, low_price, high_price = calculate_market_estimate(nom, millesime, appellation, region)
+    query_str = f"{nom} {millesime}".strip().replace(' ', '+')
+    idealwine_url = f"https://www.idealwine.com/fr/cote?search={query_str}"
+    wsearch_url = f"https://www.wine-searcher.com/find/{query_str}"
+
+    return jsonify({
+        'success': True,
+        'nom': nom,
+        'millesime': millesime,
+        'estimate_price': est_price,
+        'low_estimate': low_price,
+        'high_estimate': high_price,
+        'idealwine_url': idealwine_url,
+        'wine_searcher_url': wsearch_url,
+        'source': 'Argus de référence iDealwine & Enchères'
+    })
+
 # ================= FRONTEND ROUTE =================
 
 @app.route('/')

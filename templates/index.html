@@ -16,6 +16,26 @@
 </head>
 <body>
 
+<!-- ===================== TOPBAR MOBILE ===================== -->
+<header class="mobile-topbar">
+    <div class="mobile-topbar-brand">
+        <img src="/static/images/ben'armagnac.png" alt="Logo">
+        <div class="mobile-brand-info">
+            <span class="mobile-logo-title">BEN'ARMAGNAC</span>
+            <span class="mobile-user-name user-caviste-name">Ma Cave</span>
+        </div>
+    </div>
+    <div class="mobile-topbar-actions">
+        <button type="button" id="btnMobileAddWine" class="mobile-icon-btn" title="Ajouter un flacon">
+            <i class="fas fa-plus"></i>
+        </button>
+        <button type="button" id="btnMobileProfile" class="mobile-icon-btn" title="Mon profil">
+            <i class="fas fa-user-tie"></i>
+        </button>
+    </div>
+</header>
+
+
 <!-- ===================== SIDEBAR ===================== -->
 <div class="sidebar">
     <div class="logo">
@@ -317,7 +337,13 @@
                     <div class="row">
                         <div class="input-group">
                             <label for="f_prix">Prix unitaire (€)</label>
-                            <input type="number" id="f_prix" step="0.5" min="0" placeholder="0.00">
+                            <div style="display: flex; gap: 6px; align-items: stretch;">
+                                <input type="number" id="f_prix" step="0.5" min="0" placeholder="0.00" style="flex: 1;">
+                                <button type="button" id="btnIdealwineEstimate" class="btn-secondary" style="padding: 8px 10px; font-size: 12px; white-space: nowrap; flex-shrink: 0;" title="Estimer la cote selon l'argus iDealwine">
+                                    <i class="fas fa-search-dollar"></i> Cote iDealwine
+                                </button>
+                            </div>
+                            <div id="idealwineEstimateHint" style="font-size: 11px; margin-top: 5px; display: none;"></div>
                         </div>
                         <div class="input-group">
                             <label for="f_quantite">Nombre de bouteilles</label>
@@ -337,8 +363,14 @@
 
                     <!-- Si espace Cartons : choix du carton -->
                     <div id="placementCartonGroup" class="input-group" style="display: none;">
-                        <label for="f_carton">Carton ou Caisse</label>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <label for="f_carton" style="margin-bottom: 0;">Carton (1 carton par domaine) *</label>
+                            <span id="cartonDomaineHint" style="font-size: 11px; color: var(--primary); font-weight: 600;"></span>
+                        </div>
                         <select id="f_carton"></select>
+                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                            <i class="fas fa-boxes" style="color: #b45309;"></i> Chaque carton est réservé à un domaine pour une organisation optimale.
+                        </div>
                     </div>
 
                     <!-- Si espace Armoire : choix de la clayette -->
@@ -609,6 +641,34 @@
 
 <!-- ===================== TOAST CONTAINER ===================== -->
 <div id="toast-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column;"></div>
+
+<!-- ===================== BOTTOM NAVIGATION MOBILE ===================== -->
+<nav class="mobile-bottom-nav">
+    <button type="button" class="mobile-nav-item active" data-target="dashboard">
+        <i class="fas fa-chart-line"></i>
+        <span>Bord</span>
+    </button>
+    <button type="button" class="mobile-nav-item" data-target="inventory">
+        <i class="fas fa-list-ul"></i>
+        <span>Cave</span>
+    </button>
+    <button type="button" class="mobile-nav-item" data-target="cellar-config">
+        <i class="fas fa-cubes-stacked"></i>
+        <span>Agencement</span>
+    </button>
+    <button type="button" class="mobile-nav-item" data-target="cave3d">
+        <i class="fas fa-vr-cardboard"></i>
+        <span>Visite 3D</span>
+    </button>
+    <button type="button" class="mobile-nav-item" data-target="historique">
+        <i class="fas fa-history"></i>
+        <span>Dégustations</span>
+    </button>
+    <button type="button" class="mobile-nav-item" data-target="map">
+        <i class="fas fa-map-marked-alt"></i>
+        <span>Carte</span>
+    </button>
+</nav>
 
 <!-- ===================== SCRIPTS ===================== -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>

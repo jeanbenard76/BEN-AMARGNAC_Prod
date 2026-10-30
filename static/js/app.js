@@ -366,16 +366,7 @@ function onZoneSelectChange() {
         if (gridGroup) gridGroup.style.display = 'none';
         if (armoireGroup) armoireGroup.style.display = 'none';
 
-        // Génération des options de cartons
-        const cartonSelect = document.getElementById('f_carton');
-        if (cartonSelect) {
-            const nbCartons = (zone.columns || 4) * (zone.rows || 3);
-            let opts = '';
-            for (let i = 1; i <= nbCartons; i++) {
-                opts += `<option value="Carton ${i}">Carton ${i}</option>`;
-            }
-            cartonSelect.innerHTML = opts;
-        }
+        updateCartonDropdownForDomaine(zone);
     } else if (zone.type === 'armoire') {
         if (cartonGroup) cartonGroup.style.display = 'none';
         if (gridGroup) gridGroup.style.display = 'none';
@@ -526,43 +517,71 @@ async function confirmDeleteZone(zoneId, zoneName) {
 // NAVIGATION & INTERFACE
 // ==========================================
 
+function navigateToView(target) {
+    if (!target) return;
+
+    // Mise à jour sidebar desktop
+    document.querySelectorAll('.nav-links li').forEach(l => {
+        const match = l.dataset.target === target;
+        l.classList.toggle('active', match);
+        l.setAttribute('aria-current', match ? 'page' : 'false');
+    });
+
+    // Mise à jour bottom-nav mobile
+    document.querySelectorAll('.mobile-nav-item').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.target === target);
+    });
+
+    // Affichage de la vue demandée
+    document.querySelectorAll('.view').forEach(v => {
+        v.classList.remove('active');
+        v.classList.add('hidden');
+    });
+
+    const activeView = document.getElementById(target);
+    if (activeView) {
+        activeView.classList.remove('hidden');
+        activeView.classList.add('active');
+        if (target === 'inventory') renderInventoryTable();
+        if (target === 'historique') renderHistoryFeed();
+        if (target === 'map') setTimeout(initMap, 150);
+        if (target === 'cave3d') setTimeout(init3D, 80);
+        else stop3D();
+        if (target === 'cellar-config') renderCellarZonesList();
+    }
+
+    // Scroll fluide vers le haut sur mobile
+    const content = document.querySelector('.content');
+    if (content) content.scrollTop = 0;
+}
+
 function initNavigation() {
-    document.querySelectorAll('.nav-links li').forEach(link => {
-        const activateLink = () => {
-            document.querySelectorAll('.nav-links li').forEach(l => {
-                l.classList.remove('active');
-                l.setAttribute('aria-current', 'false');
-            });
-            link.classList.add('active');
-            link.setAttribute('aria-current', 'page');
-
-            const target = link.dataset.target;
-            document.querySelectorAll('.view').forEach(v => {
-                v.classList.remove('active');
-                v.classList.add('hidden');
-            });
-
-            const activeView = document.getElementById(target);
-            if (activeView) {
-                activeView.classList.remove('hidden');
-                activeView.classList.add('active');
-                if (target === 'inventory') renderInventoryTable();
-                if (target === 'historique') renderHistoryFeed();
-                if (target === 'map') setTimeout(initMap, 100);
-                if (target === 'cave3d') init3D();
-                else stop3D();
-                if (target === 'cellar-config') renderCellarZonesList();
-            }
-        };
-
-        link.addEventListener('click', activateLink);
-        link.addEventListener('keydown', (e) => {
+    // Écoute des clics sur la sidebar et sur la barre mobile
+    document.querySelectorAll('.nav-links li, .mobile-nav-item').forEach(el => {
+        const handler = () => navigateToView(el.dataset.target);
+        el.addEventListener('click', handler);
+        el.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                activateLink();
+                handler();
             }
         });
     });
+
+    // Boutons de la barre supérieure mobile
+    const btnMobileAdd = document.getElementById('btnMobileAddWine');
+    if (btnMobileAdd) {
+        btnMobileAdd.addEventListener('click', () => {
+            document.getElementById('btnAddWine')?.click();
+        });
+    }
+
+    const btnMobileProfile = document.getElementById('btnMobileProfile');
+    if (btnMobileProfile) {
+        btnMobileProfile.addEventListener('click', () => {
+            document.getElementById('btnUserProfile')?.click();
+        });
+    }
 }
 
 function initDateDisplay() {
@@ -573,6 +592,99 @@ function initDateDisplay() {
 // ==========================================
 // LIVRE DE CAVE & FORMULAIRES DE VIN
 // ==========================================
+
+
+// ── Gestion "Un Carton par Domaine" ──
+function updateCartonDropdownForDomaine(zoneParam = null) {
+    const zoneSelect = document.getElementById('f_zone');
+    if (!zoneSelect) return;
+    const selectedZoneId = Number(zoneSelect.value);
+    const zone = zoneParam || STATE.getZoneById(selectedZoneId);
+    if (!zone || zone.type !== 'cartons') return;
+
+    const cartonSelect = document.getElementById('f_carton');
+    const hintSpan = document.getElementById('cartonDomaineHint');
+    if (!cartonSelect) return;
+
+    const currentDomaine = (document.getElementById('f_nom')?.value || '').trim();
+    const nbCartons = (zone.columns || 4) * (zone.rows || 3);
+    const capPerCarton = zone.capacity_per_slot || 6;
+
+    // Cartographie des cartons existants dans la zone
+    const cartonMap = {};
+    for (let i = 1; i <= nbCartons; i++) {
+        cartonMap[`Carton ${i}`] = {
+            domaine: null,
+            count: 0,
+            bottles: []
+        };
+    }
+
+    STATE.inventory.filter(b => b.statut === 'En cave' && (b.zone_id === zone.id || (!b.zone_id && zone.id === STATE.zones[0]?.id))).forEach(b => {
+        const lbl = b.emplacement?.carton_label;
+        if (lbl && cartonMap[lbl]) {
+            cartonMap[lbl].count++;
+            cartonMap[lbl].bottles.push(b);
+            if (!cartonMap[lbl].domaine && b.nom) {
+                cartonMap[lbl].domaine = b.nom.trim();
+            }
+        }
+    });
+
+    let opts = '';
+    let selectedCarton = null;
+    let dedicatedCount = 0;
+
+    // 1. Cartons déjà attribués au domaine actuellement saisi
+    if (currentDomaine) {
+        for (let i = 1; i <= nbCartons; i++) {
+            const lbl = `Carton ${i}`;
+            const c = cartonMap[lbl];
+            if (c.domaine && c.domaine.toLowerCase() === currentDomaine.toLowerCase()) {
+                const free = Math.max(0, capPerCarton - c.count);
+                const isFull = free === 0;
+                const statusStr = isFull ? '(Complet)' : `(${c.count}/${capPerCarton} blles • ${free} libre${free>1?'s':''})`;
+                const sel = !selectedCarton && !isFull ? 'selected' : '';
+                if (sel) selectedCarton = lbl;
+                opts += `<option value="${lbl}" ${sel}>⭐ ${lbl} — Dédié à "${c.domaine}" ${statusStr}</option>`;
+                dedicatedCount++;
+            }
+        }
+    }
+
+    // 2. Cartons vides disponibles pour ce domaine
+    for (let i = 1; i <= nbCartons; i++) {
+        const lbl = `Carton ${i}`;
+        const c = cartonMap[lbl];
+        if (c.count === 0) {
+            const prefix = (dedicatedCount === 0 && currentDomaine) ? `✨ Nouveau carton pour "${currentDomaine}" : ` : '';
+            const sel = !selectedCarton ? 'selected' : '';
+            if (sel) selectedCarton = lbl;
+            opts += `<option value="${lbl}" ${sel}>${prefix}${lbl} (Vide • ${capPerCarton} places)</option>`;
+        }
+    }
+
+    // 3. Cartons réservés à d'autres domaines (grisés pour respecter 1 carton par domaine)
+    for (let i = 1; i <= nbCartons; i++) {
+        const lbl = `Carton ${i}`;
+        const c = cartonMap[lbl];
+        if (c.count > 0 && (!currentDomaine || !c.domaine || c.domaine.toLowerCase() !== currentDomaine.toLowerCase())) {
+            opts += `<option value="${lbl}" disabled>🔒 ${lbl} — Réservé à "${c.domaine || 'Autre'}" (${c.count} blles)</option>`;
+        }
+    }
+
+    cartonSelect.innerHTML = opts || `<option value="Carton 1">Carton 1</option>`;
+    if (hintSpan) {
+        if (dedicatedCount > 0) {
+            hintSpan.textContent = `${dedicatedCount} carton(s) pour ce domaine`;
+        } else if (currentDomaine) {
+            hintSpan.textContent = `Nouveau carton attribué`;
+        } else {
+            hintSpan.textContent = '';
+        }
+    }
+}
+
 
 function setupFormListeners() {
     const btnAdd = document.getElementById('btnAddWine');
@@ -602,6 +714,67 @@ function setupFormListeners() {
             await handleWineSubmit(false);
         });
     }
+}
+
+
+    // Mise à jour instantanée du carton quand on tape le nom du domaine
+    const fNomInput = document.getElementById('f_nom');
+    if (fNomInput) {
+        fNomInput.addEventListener('input', () => {
+            updateCartonDropdownForDomaine();
+        });
+    }
+
+    // Bouton Estimation Cote iDealwine
+    const btnEstimate = document.getElementById('btnIdealwineEstimate');
+    if (btnEstimate) {
+        btnEstimate.addEventListener('click', async () => {
+            const nom = (document.getElementById('f_nom')?.value || '').trim();
+            const millesime = (document.getElementById('f_millesime')?.value || '').trim();
+            const appellation = (document.getElementById('f_appellation')?.value || '').trim();
+            const region = (document.getElementById('f_region')?.value || '').trim();
+
+            if (!nom) {
+                showToast('Renseignez d\'abord le nom du domaine pour estimer sa cote', 'info');
+                document.getElementById('f_nom')?.focus();
+                return;
+            }
+
+            btnEstimate.disabled = true;
+            btnEstimate.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recherche...';
+
+            try {
+                const res = await API.wine.getEstimate(nom, millesime, appellation, region);
+                if (res.success) {
+                    const priceInput = document.getElementById('f_prix');
+                    if (priceInput && (!priceInput.value || Number(priceInput.value) === 0)) {
+                        priceInput.value = res.estimate_price;
+                    }
+
+                    const hintEl = document.getElementById('idealwineEstimateHint');
+                    if (hintEl) {
+                        hintEl.style.display = 'block';
+                        hintEl.innerHTML = `
+                            <span style="color:#059669; font-weight:600;">
+                                <i class="fas fa-check-circle"></i> Cote estimée : ~${res.estimate_price} €
+                            </span>
+                            <span style="color:#6b7280; font-size:10px;">(${res.low_estimate} € - ${res.high_estimate} €)</span>
+                            <a href="${res.idealwine_url}" target="_blank" rel="noopener noreferrer" style="color:var(--primary); font-weight:600; margin-left:6px; text-decoration:none;">
+                                Ouvrir iDealwine <i class="fas fa-external-link-alt" style="font-size:10px;"></i>
+                            </a>
+                        `;
+                    }
+                    showToast(`Cote estimée : ~${res.estimate_price} € pour ${nom} ${millesime}`, 'success');
+                }
+            } catch (err) {
+                showToast('Impossible d\'obtenir la cote pour ce flacon', 'error');
+            } finally {
+                btnEstimate.disabled = false;
+                btnEstimate.innerHTML = '<i class="fas fa-search-dollar"></i> Cote iDealwine';
+            }
+        });
+    }
+
 }
 
 function clearWineForm() {

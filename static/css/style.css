@@ -847,33 +847,342 @@ th {
     background: var(--chip-c); border-color: var(--chip-c); color: white;
 }
 
-/* ===================== RESPONSIVE ===================== */
-@media (max-width: 1200px) {
-    .toolbar { flex-wrap: wrap; }
+
+/* =====================================================================
+   BEN'ARMAGNAC — DESIGN MOBILE RESPONSIVE ULTRA-OPTIMISÉ (iOS & Android)
+   ===================================================================== */
+
+/* Par défaut sur Desktop (écrans larges) */
+.mobile-topbar, .mobile-bottom-nav {
+    display: none;
 }
 
-@media (max-width: 1100px) {
-    .sidebar { width: 72px; padding: 16px 10px; align-items: center; }
+@media (min-width: 861px) and (max-width: 1100px) {
+    .sidebar { width: 72px; padding: 16px 8px; align-items: center; }
     .logo span, .user-info, .nav-links li span, .sidebar-footer .btn-ghost span { display: none; }
     .nav-links li { justify-content: center; padding: 14px; }
     .nav-links li i { margin: 0; font-size: 20px; }
-    .sidebar-footer .btn-ghost { padding: 10px; }
+    .sidebar-footer .btn-ghost { padding: 10px; justify-content: center; }
     .sidebar-footer .btn-ghost i { margin: 0; }
     .content { padding: 20px 16px; }
-    .charts-grid, .kpi-grid, .history-kpi-row { grid-template-columns: 1fr; }
-    .modal-box { width: 95%; max-height: 92vh; overflow-y: auto; }
-    .modal-box.tasting-modal { width: 95%; }
-    .form-grid { grid-template-columns: 1fr; }
-    .form-column:first-child { border-right: none; border-bottom: 1px solid var(--border); }
+    .charts-grid, .kpi-grid { grid-template-columns: 1fr; }
 }
 
-@media (max-width: 640px) {
-    .toolbar { flex-direction: column; align-items: stretch; }
-    .search-group { width: 100%; }
-    .history-card { grid-template-columns: 1fr; }
-    .history-card-photo { width: 100%; height: 160px; }
-    .view-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+/* SMARTPHONES ET TABLETTES EN MODE PORTRAIT (< 860px) */
+@media (max-width: 860px) {
+    html, body {
+        height: 100dvh !important;
+        min-height: 100vh !important;
+        overflow: hidden !important;
+        position: fixed;
+        width: 100%;
+    }
+
+    body {
+        display: flex !important;
+        flex-direction: column !important;
+        background-color: var(--bg-light);
+    }
+
+    /* 1. La barre latérale Desktop est masquée au profit du header & bottom bar */
+    .sidebar {
+        display: none !important;
+    }
+
+    /* 2. Topbar Mobile */
+    .mobile-topbar {
+        display: flex !important;
+        align-items: center;
+        justify-content: space-between;
+        height: 56px;
+        background: var(--bg-dark);
+        color: white;
+        padding: 0 14px;
+        flex-shrink: 0;
+        z-index: 100;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+    .mobile-topbar-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .mobile-topbar-brand img {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 1.5px solid var(--accent);
+    }
+    .mobile-brand-info {
+        display: flex;
+        flex-direction: column;
+    }
+    .mobile-logo-title {
+        font-family: 'Playfair Display', serif;
+        font-weight: 700;
+        font-size: 14px;
+        color: #ffffff;
+        letter-spacing: 0.5px;
+    }
+    .mobile-user-name {
+        font-size: 11px;
+        color: var(--accent);
+        font-weight: 500;
+        max-width: 150px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .mobile-topbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .mobile-icon-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.1);
+        border: none;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .mobile-icon-btn:active {
+        background: var(--primary);
+        transform: scale(0.95);
+    }
+
+    /* 3. Zone de contenu scrollable */
+    .content {
+        flex: 1 !important;
+        height: calc(100dvh - 56px - 60px) !important;
+        padding: 14px 12px 20px 12px !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+        width: 100% !important;
+    }
+
+    /* 4. Barre de navigation basse (Bottom Nav) */
+    .mobile-bottom-nav {
+        display: flex !important;
+        height: 60px;
+        background: rgba(18, 20, 24, 0.96);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-top: 1px solid rgba(255,255,255,0.12);
+        flex-shrink: 0;
+        z-index: 150;
+        justify-content: space-around;
+        align-items: center;
+        padding-bottom: env(safe-area-inset-bottom);
+        box-shadow: 0 -2px 12px rgba(0,0,0,0.3);
+    }
+    .mobile-nav-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        background: transparent;
+        border: none;
+        color: #9ca3af;
+        font-size: 10px;
+        font-weight: 500;
+        cursor: pointer;
+        padding: 6px 2px;
+        transition: all 0.15s;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .mobile-nav-item i {
+        font-size: 17px;
+        transition: transform 0.15s;
+    }
+    .mobile-nav-item.active {
+        color: var(--accent);
+        font-weight: 700;
+    }
+    .mobile-nav-item.active i {
+        color: var(--accent);
+        transform: translateY(-2px);
+    }
+
+    /* 5. Vues & En-têtes */
+    .view-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+        margin-bottom: 18px !important;
+    }
+    .view-header h1 {
+        font-size: 22px !important;
+    }
+    .view-header .btn-primary, .view-header .btn-secondary {
+        width: 100% !important;
+        justify-content: center !important;
+        padding: 12px !important;
+    }
+
+    /* 6. Dashboard & KPIs */
+    .kpi-grid {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+        margin-bottom: 18px !important;
+    }
+    .kpi {
+        padding: 14px 16px !important;
+        gap: 14px !important;
+    }
+    .kpi-icon {
+        width: 44px !important;
+        height: 44px !important;
+        font-size: 18px !important;
+        border-radius: 10px !important;
+    }
+    .kpi-value {
+        font-size: 22px !important;
+    }
+    .charts-grid {
+        grid-template-columns: 1fr !important;
+        gap: 14px !important;
+    }
+    .chart-container {
+        min-height: 260px !important;
+        padding: 16px !important;
+    }
+
+    /* 7. Livre de cave & Recherche */
+    .toolbar {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 8px !important;
+        padding: 12px !important;
+    }
+    .search-group {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+    .search-group input {
+        font-size: 16px !important; /* Évite le zoom automatique iOS Safari */
+    }
+    .toolbar select {
+        width: 100% !important;
+        min-width: 0 !important;
+        font-size: 15px !important;
+        padding: 10px 12px !important;
+    }
+
+    /* Tableau Scrollable */
+    .table-wrapper {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 10px !important;
+        margin: 0 -4px;
+    }
+    table {
+        min-width: 580px;
+    }
+    th, td {
+        padding: 10px 12px !important;
+        font-size: 12px !important;
+    }
+    .action-btn {
+        padding: 8px 10px !important;
+        font-size: 16px !important;
+    }
+
+    /* 8. Modales en style Bottom-Sheet */
+    .modal-overlay {
+        padding: 0 !important;
+        align-items: flex-end !important;
+    }
+    .modal-box {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 90dvh !important;
+        border-radius: 20px 20px 0 0 !important;
+        margin: 0 !important;
+        box-shadow: 0 -10px 30px rgba(0,0,0,0.35) !important;
+    }
+    .modal-header {
+        padding: 16px 18px !important;
+    }
+    .modal-header h2 {
+        font-size: 16px !important;
+    }
+    .modal-footer {
+        padding: 14px 18px !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+    .modal-footer button {
+        width: 100% !important;
+        justify-content: center !important;
+        padding: 12px !important;
+    }
+    .form-grid {
+        grid-template-columns: 1fr !important;
+    }
+    .form-column {
+        padding: 16px !important;
+    }
+    .form-column:first-child {
+        border-right: none !important;
+        border-bottom: 1px solid var(--border) !important;
+    }
+    .row {
+        flex-direction: column !important;
+        gap: 6px !important;
+    }
+    .input-group input, .input-group select, .input-group textarea {
+        font-size: 16px !important; /* Pas de zoom intempestif sur iPhone */
+        padding: 11px 12px !important;
+    }
+
+    /* 9. Visite 3D sur mobile */
+    .visualizer-container {
+        height: 52vh !important;
+        min-height: 340px !important;
+        border-radius: 12px !important;
+        touch-action: none !important;
+    }
+    .cave-hint {
+        display: none !important;
+    }
+
+    /* 10. Agencement de cave */
+    .cellar-config-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    .cellar-zone-card {
+        padding: 16px !important;
+    }
+
+    /* 11. Carte */
+    .map-frame {
+        height: 60vh !important;
+        min-height: 350px !important;
+    }
+
+    /* 12. Toasts au-dessus de la barre de navigation */
+    #toast-container {
+        left: 12px !important;
+        right: 12px !important;
+        bottom: 72px !important;
+    }
+    .toast {
+        width: 100% !important;
+        font-size: 13px !important;
+        padding: 10px 16px !important;
+    }
 }
+
 
 
 /* =====================================================================

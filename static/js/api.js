@@ -143,6 +143,19 @@ const API = {
         }
     },
 
+    // ── Cote iDealwine & Estimation ──
+    wine: {
+        async getEstimate(nom, millesime, appellation, region) {
+            const params = new URLSearchParams({
+                nom: nom || '',
+                millesime: millesime || '',
+                appellation: appellation || '',
+                region: region || ''
+            });
+            return API.request(`/api/wine/idealwine-estimate?${params.toString()}`, { method: 'GET' });
+        }
+    },
+
     // ── Export complet ──
     export: {
         async getExportData() {

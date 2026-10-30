@@ -245,7 +245,38 @@ function createCartonStackZone(scene, zone, x, z, rotY) {
             );
 
             if (winesInCarton.length > 0) {
-                // Pastille lumineuse indiquant le type de vin prédominant
+                const domaineName = winesInCarton[0].nom || 'Grand Vin';
+
+                // Estampillage réaliste du domaine sur le carton
+                const stampCanvas = document.createElement('canvas');
+                stampCanvas.width = 512;
+                stampCanvas.height = 256;
+                const sctx = stampCanvas.getContext('2d');
+                sctx.fillStyle = isWood ? '#b58a57' : '#9c7247';
+                sctx.fillRect(0, 0, 512, 256);
+                sctx.strokeStyle = '#2d180d';
+                sctx.lineWidth = 6;
+                sctx.strokeRect(8, 8, 496, 240);
+
+                sctx.fillStyle = '#1c0f08';
+                sctx.font = 'bold 34px "Playfair Display", serif';
+                sctx.textAlign = 'center';
+                sctx.textBaseline = 'middle';
+                sctx.fillText(domaineName.slice(0, 22).toUpperCase(), 256, 95);
+
+                sctx.font = 'bold 20px "Inter", sans-serif';
+                sctx.fillStyle = '#4a2816';
+                sctx.fillText(`${winesInCarton.length} BOUTEILLE(S)`, 256, 165);
+
+                const stampTex = new THREE.CanvasTexture(stampCanvas);
+                const stampMat = new THREE.MeshBasicMaterial({ map: stampTex, side: THREE.DoubleSide });
+                const stamp = new THREE.Mesh(new THREE.PlaneGeometry(boxW * 0.88, boxH * 0.72), stampMat);
+                stamp.position.set(px, py, boxD / 2 + 0.05);
+                stamp.userData = boxMesh.userData;
+                STATE.scene.objects.push(stamp);
+                group.add(stamp);
+
+                // Pastille lumineuse couleur vin
                 const typeCounts = {};
                 winesInCarton.forEach(w => { typeCounts[w.type] = (typeCounts[w.type] || 0) + 1; });
                 const dominant = Object.entries(typeCounts).sort((a,b) => b[1]-a[1])[0][0];
@@ -257,9 +288,9 @@ function createCartonStackZone(scene, zone, x, z, rotY) {
                     emissiveIntensity: 0.9,
                     roughness: 0.2
                 });
-                const badge = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.15, 16), badgeMat);
+                const badge = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.1, 16), badgeMat);
                 badge.rotation.x = Math.PI / 2;
-                badge.position.set(px, py, boxD / 2 + 0.1);
+                badge.position.set(px + (boxW * 0.32), py + (boxH * 0.26), boxD / 2 + 0.1);
                 badge.userData = boxMesh.userData;
                 STATE.scene.objects.push(badge);
                 group.add(badge);
