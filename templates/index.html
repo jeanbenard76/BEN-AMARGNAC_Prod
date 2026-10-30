@@ -12,7 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 
 <!-- Feuilles de styles -->
-<link rel="stylesheet" href="/static/css/style.css?v=3.2">
+<link rel="stylesheet" href="/static/css/style.css?v=3.3">
 </head>
 <body>
 
@@ -776,18 +776,46 @@
     </div>
 </div>
 
-<!-- 4. MODALE DÉTAILS D'UN EMPLACEMENT 3D CLIC -->
-<div id="slotModal" class="modal-overlay hidden">
-    <div class="modal-box" style="width: 520px;">
-        <div class="modal-header">
-            <div>
-                <h2 id="slotTitle" style="font-size: 17px;">Contenu du casier</h2>
-                <div id="slotSubtitle" style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Mur Central</div>
+<!-- 4. MODALE VUE 2D DU BLOC DE STOCKAGE (INTERACTION 3D -> 2D) -->
+<div id="slotModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="blockViewerTitle">
+    <div class="modal-box block-modal">
+        <!-- En-tête -->
+        <div class="modal-header" style="padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #fff;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div id="blockViewerIcon" style="width: 40px; height: 40px; border-radius: 10px; background: rgba(128,0,32,0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                    <i class="fas fa-th"></i>
+                </div>
+                <div>
+                    <h2 id="blockViewerTitle" style="font-size: 18px; font-weight: 700; margin: 0; color: var(--primary); font-family: 'Playfair Display', serif;">Plan 2D du Bloc</h2>
+                    <div id="blockViewerSubtitle" style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Sélectionnez un casier ou un carton pour inspecter les bouteilles</div>
+                </div>
             </div>
-            <button class="close-modal-btn-x" onclick="closeModalSlot()">×</button>
+            <button type="button" class="close-modal-btn-x" onclick="closeModalSlot()" aria-label="Fermer">×</button>
         </div>
-        <div id="slotContent" style="padding: 20px;">
-            <!-- Rempli au clic 3D -->
+
+        <!-- Onglets des espaces de stockage -->
+        <div class="block-zone-tabs" id="blockZoneTabs">
+            <!-- Rempli dynamiquement -->
+        </div>
+
+        <!-- Résumé & Statistiques du bloc -->
+        <div class="block-summary-bar" id="blockSummaryBar">
+            <!-- Rempli dynamiquement -->
+        </div>
+
+        <!-- Corps scrollable avec le schéma 2D + détail du casier cliqué -->
+        <div class="block-modal-body">
+            <!-- Schéma 2D -->
+            <div class="block-2d-canvas-container">
+                <div id="block2DGrid" class="block-2d-grid">
+                    <!-- Généré dynamiquement selon le type de zone -->
+                </div>
+            </div>
+
+            <!-- Détail de l'emplacement sélectionné -->
+            <div class="block-slot-detail-panel" id="blockSlotDetailPanel">
+                <!-- Rempli dynamiquement -->
+            </div>
         </div>
     </div>
 </div>
@@ -922,10 +950,10 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <!-- Application Scripts -->
-<script src="/static/js/api.js?v=3.2"></script>
-<script src="/static/js/state.js?v=3.2"></script>
-<script src="/static/js/visualizer3d.js?v=3.2"></script>
-<script src="/static/js/app.js?v=3.2"></script>
+<script src="/static/js/api.js?v=3.3"></script>
+<script src="/static/js/state.js?v=3.3"></script>
+<script src="/static/js/visualizer3d.js?v=3.3"></script>
+<script src="/static/js/app.js?v=3.3"></script>
 
 </body>
 </html>
