@@ -714,8 +714,6 @@ function setupFormListeners() {
             await handleWineSubmit(false);
         });
     }
-}
-
 
     // Mise à jour instantanée du carton quand on tape le nom du domaine
     const fNomInput = document.getElementById('f_nom');

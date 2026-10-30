@@ -854,7 +854,7 @@ th {
 
 /* Par défaut sur Desktop (écrans larges) */
 .mobile-topbar, .mobile-bottom-nav {
-    display: none;
+    display: none !important;
 }
 
 @media (min-width: 861px) and (max-width: 1100px) {
