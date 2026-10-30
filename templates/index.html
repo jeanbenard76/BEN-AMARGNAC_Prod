@@ -184,6 +184,8 @@
                 <option value="Rosé">Rosé</option>
                 <option value="Champagne">Champagne</option>
                 <option value="Cidre">Cidre</option>
+                <option value="Bière">Bière</option>
+                <option value="Spiritueux">Spiritueux (Armagnac, Whisky...)</option>
             </select>
             <select id="filterZone">
                 <option value="">Tous les espaces</option>
@@ -245,9 +247,12 @@
                 <h1>Visite Virtuelle 3D</h1>
                 <div class="date-indicator">Explorez votre cave personnalisée en temps réel</div>
             </div>
-            <div>
-                <button class="btn-secondary" onclick="init3D()">
-                    <i class="fas fa-sync-alt"></i> Recentrer la vue
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <button type="button" class="btn-primary" onclick="open2DBlockViewer()" style="display:inline-flex; align-items:center; gap:6px;">
+                    <i class="fas fa-th-large"></i> Plan 2D interactif
+                </button>
+                <button type="button" class="btn-secondary" onclick="init3D()">
+                    <i class="fas fa-sync-alt"></i> Recentrer
                 </button>
             </div>
         </div>
@@ -448,6 +453,8 @@
                                 <option value="Rosé">Rosé</option>
                                 <option value="Champagne">Champagne</option>
                                 <option value="Cidre">Cidre</option>
+                                <option value="Bière">Bière</option>
+                                <option value="Spiritueux">Spiritueux (Armagnac, Cognac, Whisky, Rhum...)</option>
                             </select>
                         </div>
                     </div>
@@ -582,6 +589,10 @@
                 <div class="storage-type-card" data-type="armoire">
                     <i class="fas fa-temperature-low" style="color: #2563eb;"></i>
                     <span>Armoire à Vin Vitrée</span>
+                </div>
+                <div class="storage-type-card" data-type="chariot">
+                    <i class="fas fa-cocktail" style="color: #d97706;"></i>
+                    <span>Chariot à Spiritueux</span>
                 </div>
             </div>
 

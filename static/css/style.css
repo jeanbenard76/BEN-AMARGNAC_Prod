@@ -277,6 +277,8 @@ th {
 .badge-rose      { background: var(--col-rose-bg);      color: var(--col-rose);         border-color: rgba(157,23,77,0.12); }
 .badge-champagne { background: var(--col-champagne-bg); color: var(--col-champagne-text); border-color: rgba(120,72,10,0.12); }
 .badge-cidre     { background: var(--col-cidre-bg);     color: var(--col-cidre-text);   border-color: rgba(120,53,15,0.12); }
+.badge-biere      { background: #fef3c7; color: #b45309; border-color: rgba(180,83,9,0.2); }
+.badge-spiritueux { background: #ffedd5; color: #9a3412; border-color: rgba(154,52,18,0.25); }
 
 /* Dots */
 .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; transform: translateY(1px); flex-shrink: 0; }
@@ -331,9 +333,9 @@ th {
 
 /* ===================== MODAL BASE ===================== */
 .modal-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.45);
-    z-index: 200; display: flex; align-items: center; justify-content: center;
-    backdrop-filter: blur(3px); padding: 16px;
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    z-index: 10005 !important; display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px); padding: 16px;
 }
 .hidden, .modal-overlay.hidden, .auth-overlay.hidden { display: none !important; }
 .modal-box {
@@ -1105,6 +1107,7 @@ th {
     .modal-overlay {
         padding: 0 !important;
         align-items: flex-end !important;
+        z-index: 10005 !important;
     }
     .modal-box {
         width: 100% !important;
@@ -1688,43 +1691,174 @@ th {
     font-weight: 700;
 }
 
-/* Cartons au sol 2D */
+/* ===================== CAISSES EN BOIS BRUTES (VUE 2D) ===================== */
 .carton-2d-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 16px;
     width: 100%;
 }
 
-.carton-2d-box {
-    background: #d4a373;
-    border: 2px solid #8d5b24;
-    border-radius: 8px;
-    padding: 10px 12px;
-    color: #2b1808;
+.carton-2d-crate {
+    position: relative;
+    background: repeating-linear-gradient(
+        to bottom,
+        #cf9d69,
+        #cf9d69 22px,
+        #b88652 23px,
+        #c4925e 24px,
+        #cf9d69 25px,
+        #cf9d69 46px,
+        #b88652 47px,
+        #c4925e 48px
+    );
+    border: 3px solid #78491c;
+    border-radius: 6px;
+    padding: 12px 14px;
+    min-height: 115px;
     cursor: pointer;
-    min-height: 80px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.4), inset 0 0 10px rgba(74,38,12,0.3);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    transition: all 0.22s ease-in-out;
+    overflow: hidden;
+    user-select: none;
+}
+
+.carton-2d-crate::before, .carton-2d-crate::after {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 9px;
+    background: linear-gradient(to right, #333, #151515 60%, #444);
+    box-shadow: 0 0 3px rgba(0,0,0,0.5);
+    z-index: 2;
+}
+.carton-2d-crate::before { left: 9px; }
+.carton-2d-crate::after  { right: 9px; }
+
+.carton-2d-crate:hover {
+    transform: translateY(-3px) scale(1.01);
+    box-shadow: 0 10px 22px rgba(0,0,0,0.5), inset 0 0 12px rgba(74,38,12,0.4);
+}
+
+.carton-2d-crate.selected {
+    outline: 3px solid #f59e0b;
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.75), 0 8px 18px rgba(0,0,0,0.5) !important;
+}
+
+.crate-brand-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #4a2810;
+    font-weight: 800;
+    margin-bottom: 2px;
+    padding: 0 10px;
+    opacity: 0.9;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.crate-brand-title {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 13px;
+    font-weight: 800;
+    text-align: center;
+    color: #381a05;
+    letter-spacing: 0.5px;
+    margin: 4px 0;
+    line-height: 1.25;
+    text-transform: uppercase;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.3);
+    padding: 0 12px;
+    word-break: break-word;
+}
+
+.crate-brand-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 10px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #422006;
+    border-top: 1px dashed rgba(74,38,12,0.4);
+    padding-top: 5px;
+    margin-top: 4px;
+}
+
+.crate-empty-add {
+    background: rgba(255,255,255,0.06);
+    border: 2px dashed rgba(255,255,255,0.3);
+    border-radius: 8px;
+    padding: 16px;
+    min-height: 115px;
+    color: #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+    text-align: center;
+}
+.crate-empty-add:hover {
+    background: rgba(255,255,255,0.12);
+    border-color: #f59e0b;
+    color: #f59e0b;
 }
 
-.carton-2d-box:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 14px rgba(0,0,0,0.35);
+/* ===================== CHARIOT À SPIRITUEUX 2D ===================== */
+.chariot-2d-frame {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    max-width: 580px;
+    margin: 0 auto;
+    background: linear-gradient(145deg, #1c1813, #2a221a);
+    border: 2px solid #b45309;
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.5);
 }
 
-.carton-2d-box.selected {
-    border: 2.5px solid #f59e0b !important;
-    box-shadow: 0 0 16px rgba(245, 158, 11, 0.8) !important;
+.chariot-tray {
+    background: #392213;
+    border: 1.5px solid #d4af37;
+    border-radius: 10px;
+    padding: 12px 16px;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.5);
+    cursor: pointer;
+    transition: 0.2s;
+}
+.chariot-tray:hover {
+    background: #462b1a;
+}
+.chariot-tray.selected {
+    border-color: #f59e0b !important;
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.75), inset 0 2px 6px rgba(0,0,0,0.5);
 }
 
-.carton-2d-box.empty {
-    background: #e9ecef;
-    border: 2px dashed #adb5bd;
-    color: #6c757d;
+.chariot-tray-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    color: #fef3c7;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.chariot-bottles-grid {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
 }
 
 /* Armoire EuroCave 2D */

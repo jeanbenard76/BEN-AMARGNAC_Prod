@@ -373,12 +373,28 @@ function onZoneSelectChange() {
         if (armoireGroup) armoireGroup.style.display = 'block';
 
         const clayetteSelect = document.getElementById('f_clayette');
+        const clayetteLabel = document.querySelector('label[for="f_clayette"]');
+        if (clayetteLabel) clayetteLabel.textContent = "Numéro de clayette";
         if (clayetteSelect) {
             let opts = '';
             for (let i = 1; i <= (zone.rows || 6); i++) {
                 opts += `<option value="${i}">Clayette ${i} ${i===1?'(Haut)':(i===zone.rows?'(Bas)':'')}</option>`;
             }
             clayetteSelect.innerHTML = opts;
+        }
+    } else if (zone.type === 'chariot') {
+        if (cartonGroup) cartonGroup.style.display = 'none';
+        if (gridGroup) gridGroup.style.display = 'none';
+        if (armoireGroup) armoireGroup.style.display = 'block';
+
+        const clayetteSelect = document.getElementById('f_clayette');
+        const clayetteLabel = document.querySelector('label[for="f_clayette"]');
+        if (clayetteLabel) clayetteLabel.textContent = "Plateau du Chariot";
+        if (clayetteSelect) {
+            clayetteSelect.innerHTML = `
+                <option value="1">Plateau Supérieur (Service / Dégustation active)</option>
+                <option value="2">Plateau Inférieur (Réserve spiritueux & bières)</option>
+            `;
         }
     } else {
         // Losange ou Étagère
@@ -538,12 +554,25 @@ function navigateToView(target) {
         v.classList.add('hidden');
     });
 
+    // Afficher explicitement la vue cible et forcer le masquage des autres
+    document.querySelectorAll('.view').forEach(v => {
+        v.style.display = 'none';
+    });
+
     const activeView = document.getElementById(target);
     if (activeView) {
         activeView.classList.remove('hidden');
         activeView.classList.add('active');
+        activeView.style.display = 'block';
+
         if (target === 'inventory') renderInventoryTable();
-        if (target === 'historique') renderHistoryFeed();
+        if (target === 'historique') {
+            try {
+                renderHistoryFeed();
+            } catch (err) {
+                console.error("Erreur affichage historique/dégustations:", err);
+            }
+        }
         if (target === 'map') setTimeout(initMap, 150);
         if (target === 'cave3d') setTimeout(init3D, 80);
         else stop3D();
@@ -810,7 +839,7 @@ async function handleWineSubmit(shouldClose) {
     let col = 1, lig = 1, cartonLabel = '';
     if (zone && zone.type === 'cartons') {
         cartonLabel = document.getElementById('f_carton').value || 'Carton 1';
-    } else if (zone && zone.type === 'armoire') {
+    } else if (zone && (zone.type === 'armoire' || zone.type === 'chariot')) {
         lig = parseInt(document.getElementById('f_clayette').value) || 1;
     } else {
         col = parseInt(document.getElementById('f_col').value) || 1;
@@ -1102,7 +1131,7 @@ function renderDashboardCharts(stock) {
 
     if (typeCanvas) {
         // Types de vin donut
-        const typeCounts = { Rouge: 0, Blanc: 0, Rosé: 0, Champagne: 0, Cidre: 0 };
+        const typeCounts = { Rouge: 0, Blanc: 0, 'Rosé': 0, Champagne: 0, Cidre: 0, 'Bière': 0, 'Spiritueux': 0 };
         stock.forEach(b => { if (typeCounts[b.type] !== undefined) typeCounts[b.type]++; });
 
         if (STATE.charts.type) STATE.charts.type.destroy();
@@ -1275,7 +1304,7 @@ function buildHistSlicer(containerId, items, filterSet, labelFn, cssClassFn) {
 
 function initHistorySlicers() {
     buildHistSlicer('slicerType',
-        ['Rouge', 'Blanc', 'Rosé', 'Champagne', 'Cidre'],
+        ['Rouge', 'Blanc', 'Rosé', 'Champagne', 'Cidre', 'Bière', 'Spiritueux'],
         HIST_FILTERS.types,
         t => t,
         t => 'type-' + t.toLowerCase().replace('é', 'e')
@@ -1374,13 +1403,14 @@ function renderHistoryFeed() {
     setEl('hkpi-value', totalVal.toLocaleString('fr-FR') + ' €');
     setEl('hkpi-best', bestEntry ? bestEntry.note + '/10' : '—');
     setEl('hkpi-best-name', bestEntry ? (bestEntry.bottle_ref?.nom || '—') : '—');
-    setEl('hkpi-qp', bestQP ? '★'.repeat(bestQP.qp) : '—');
+    const qpCount = Math.max(0, Math.min(5, Math.round(bestQP?.qp || 0)));
+    setEl('hkpi-qp', qpCount > 0 ? '★'.repeat(qpCount) : '—');
     setEl('hkpi-qp-name', bestQP ? (bestQP.bottle_ref?.nom || '—') : '—');
 
-    renderHistMonthlyChart(filtered);
-    renderHistTypeChart(filtered);
-    renderNoteDistrib(filtered);
-    renderTopTable(filtered);
+    try { renderHistMonthlyChart(filtered); } catch (e) { console.warn("Chart monthly error:", e); }
+    try { renderHistTypeChart(filtered); } catch (e) { console.warn("Chart type error:", e); }
+    try { renderNoteDistrib(filtered); } catch (e) { console.warn("Note distrib error:", e); }
+    try { renderTopTable(filtered); } catch (e) { console.warn("Top table error:", e); }
 
     const countEl = document.getElementById('histResultCount');
     if (countEl) countEl.textContent = `${filtered.length} dégustation${filtered.length > 1 ? 's' : ''}`;
@@ -1408,8 +1438,8 @@ function renderHistoryFeed() {
             : '—';
 
         let starsHtml = '<span style="font-size:12px;color:#9ca3af;font-style:italic;">Non noté</span>';
-        if (entry.note) {
-            const f = Math.round(entry.note);
+        if (entry.note !== undefined && entry.note !== null) {
+            const f = Math.max(0, Math.min(10, Math.round(entry.note)));
             const e2 = Math.max(0, 10 - f);
             starsHtml = `
                 <span class="stars-display">
@@ -1485,12 +1515,16 @@ function renderHistMonthlyChart(entries) {
     if (keySet.size === 0) return;
 
     const sortedKeys = [...keySet].sort();
-    const [fy, fm] = sortedKeys[0].split('-').map(Number);
-    const [ly, lm] = sortedKeys[sortedKeys.length - 1].split('-').map(Number);
+    let fy = parseInt(sortedKeys[0].split('-')[0]), fm = parseInt(sortedKeys[0].split('-')[1]);
+    let ly = parseInt(sortedKeys[sortedKeys.length - 1].split('-')[0]), lm = parseInt(sortedKeys[sortedKeys.length - 1].split('-')[1]);
+    if (isNaN(fy) || isNaN(fm)) { fy = 2024; fm = 1; }
+    if (isNaN(ly) || isNaN(lm)) { ly = 2024; lm = 12; }
 
     const labels = [], dataCount = [], dataMoney = [];
     let y = fy, m = fm;
-    while (y < ly || (y === ly && m <= lm)) {
+    let iterations = 0;
+    while ((y < ly || (y === ly && m <= lm)) && iterations < 48) {
+        iterations++;
         const key = `${y}-${String(m).padStart(2, '0')}`;
         const mes = log.filter(e => e.date_consommation && e.date_consommation.startsWith(key));
         labels.push(new Date(y, m - 1, 1).toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' }));

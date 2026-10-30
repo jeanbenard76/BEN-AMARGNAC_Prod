@@ -99,7 +99,8 @@ def create_default_zones_for_user(user_id, conn=None):
         ("Grande Cave — Casiers Losanges", "losange", 14, 3, 48, 1, json.dumps({"wall": 2, "wood_color": "#3b2010"})),
         ("Étagères Murales Gauche", "etagere", 8, 4, 12, 2, json.dumps({"wall": 1, "shelf_style": "chene"})),
         ("Espace Caisses & Cartons au Sol", "cartons", 6, 3, 12, 3, json.dumps({"nb_cartons": 18, "type_boite": "bois_et_kraft"})),
-        ("Armoire Réfrigérée EuroCave", "armoire", 2, 6, 12, 4, json.dumps({"clayettes": 6, "temp": 12}))
+        ("Armoire Réfrigérée EuroCave", "armoire", 2, 6, 12, 4, json.dumps({"clayettes": 6, "temp": 12})),
+        ("Chariot Spiritueux & Dégustation", "chariot", 4, 2, 6, 5, json.dumps({"plateaux": 2, "style": "laiton_acajou"}))
     ]
     conn.executemany('''
         INSERT INTO cellar_zones (user_id, name, type, columns, rows, capacity_per_slot, position_order, config_json)

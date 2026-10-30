@@ -104,6 +104,8 @@ function init3D() {
                 createCartonStackZone(scene, zone, pos.x, pos.z, pos.rotY);
             } else if (zone.type === 'armoire') {
                 createWineCabinetZone(scene, zone, pos.x, pos.z, pos.rotY);
+            } else if (zone.type === 'chariot') {
+                createBarCartZone(scene, zone, pos.x, pos.z, pos.rotY);
             } else if (zone.type === 'etagere') {
                 createShelvesWallZone(scene, zone, pos.x, pos.z, pos.rotY);
             } else {
@@ -128,7 +130,20 @@ function init3D() {
     }
     animate();
 
-    container.onclick = (e) => onCanvasClick(e, container);
+    let pointerStartPos = { x: 0, y: 0, time: 0 };
+    container.addEventListener('pointerdown', (e) => {
+        pointerStartPos = { x: e.clientX, y: e.clientY, time: Date.now() };
+    }, { passive: true });
+
+    container.addEventListener('pointerup', (e) => {
+        const dx = Math.abs(e.clientX - pointerStartPos.x);
+        const dy = Math.abs(e.clientY - pointerStartPos.y);
+        const dt = Date.now() - pointerStartPos.time;
+        // Si touch/clic rapide sans déplacement (vrai tap mobile)
+        if (dx < 12 && dy < 12 && dt < 450) {
+            onCanvasClick(e, container);
+        }
+    });
 }
 
 // ── Décor central ──
@@ -479,6 +494,124 @@ function createShelvesWallZone(scene, zone, x, z, rotY) {
     createZoneTitleSign(group, zone.name, 0, totalH + 1.2, 0);
 }
 
+
+// ── 5. ZONE CHARIOT À SPIRITUEUX & DÉGUSTATION ──
+function createBarCartZone(scene, zone, x, z, rotY) {
+    const group = new THREE.Group();
+    group.position.set(x, 0, z);
+    group.rotation.y = rotY;
+    scene.add(group);
+
+    const cartW = 8.0, cartH = 7.5, cartD = 5.0;
+
+    // 4 Roulettes en laiton / métal foncé
+    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x27272a, roughness: 0.4, metalness: 0.8 });
+    const wheelGeom = new THREE.CylinderGeometry(0.4, 0.4, 0.25, 16);
+    wheelGeom.rotateZ(Math.PI / 2);
+    [
+        [-cartW / 2 + 0.6, -cartD / 2 + 0.6],
+        [ cartW / 2 - 0.6, -cartD / 2 + 0.6],
+        [-cartW / 2 + 0.6,  cartD / 2 - 0.6],
+        [ cartW / 2 - 0.6,  cartD / 2 - 0.6]
+    ].forEach(([wx, wz]) => {
+        const wheel = new THREE.Mesh(wheelGeom, wheelMat);
+        wheel.position.set(wx, 0.4, wz);
+        wheel.castShadow = true;
+        group.add(wheel);
+    });
+
+    // 4 Montants tubulaires laiton doré
+    const brassMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.25, metalness: 0.85 });
+    const legGeom = new THREE.CylinderGeometry(0.12, 0.12, cartH, 16);
+    [
+        [-cartW / 2 + 0.6, -cartD / 2 + 0.6],
+        [ cartW / 2 - 0.6, -cartD / 2 + 0.6],
+        [-cartW / 2 + 0.6,  cartD / 2 - 0.6],
+        [ cartW / 2 - 0.6,  cartD / 2 - 0.6]
+    ].forEach(([lx, lz]) => {
+        const leg = new THREE.Mesh(legGeom, brassMat);
+        leg.position.set(lx, cartH / 2 + 0.4, lz);
+        leg.castShadow = true;
+        group.add(leg);
+    });
+
+    // Poignée élégante du chariot
+    const handleBar = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, cartD - 1.2, 16), brassMat);
+    handleBar.rotation.x = Math.PI / 2;
+    handleBar.position.set(cartW / 2 + 0.4, cartH + 0.4, 0);
+    group.add(handleBar);
+
+    // Plateaux en bois noble acajou verni
+    const mahoganyMat = new THREE.MeshStandardMaterial({ color: 0x3d1c06, roughness: 0.4 });
+
+    const trayLevels = [
+        { lig: 2, y: 1.6, label: "Plateau Inférieur (Réserve spiritueux & bières)" },
+        { lig: 1, y: 5.5, label: "Plateau Supérieur (Service / Dégustation)" }
+    ];
+
+    trayLevels.forEach(lvl => {
+        // Fond de plateau
+        const trayMesh = new THREE.Mesh(new THREE.BoxGeometry(cartW, 0.3, cartD), mahoganyMat);
+        trayMesh.position.set(0, lvl.y, 0);
+        trayMesh.castShadow = true;
+        trayMesh.receiveShadow = true;
+        group.add(trayMesh);
+
+        // Rambarde dorée autour du plateau
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(cartW + 0.1, 0.5, cartD + 0.1), brassMat);
+        rail.position.set(0, lvl.y + 0.3, 0);
+        group.add(rail);
+
+        // Hitbox interactive pour le plateau
+        const hitBox = new THREE.Mesh(
+            new THREE.BoxGeometry(cartW, 2.2, cartD),
+            new THREE.MeshStandardMaterial({ color: 0x000000, transparent: true, opacity: 0.05 })
+        );
+        hitBox.position.set(0, lvl.y + 1.2, 0);
+        hitBox.userData = {
+            type: 'chariot',
+            zone_id: zone.id,
+            zone_name: zone.name,
+            col: 1,
+            lig: lvl.lig,
+            label: lvl.label
+        };
+        STATE.scene.objects.push(hitBox);
+        group.add(hitBox);
+
+        // Bouteilles de spiritueux debout sur le plateau
+        const winesOnTray = STATE.inventory.filter(b =>
+            b.statut === "En cave" &&
+            (b.zone_id === zone.id || (!b.zone_id && zone.id === STATE.zones[0]?.id)) &&
+            Number(b.emplacement?.lig || b.lig) === lvl.lig
+        );
+
+        const count = Math.min(winesOnTray.length > 0 ? winesOnTray.length : 3, 6);
+        for (let i = 0; i < count; i++) {
+            const w = winesOnTray[i % Math.max(1, winesOnTray.length)];
+            const spiritColor = (w && WINE_COLORS[w.type]?.hex3d) || (lvl.lig === 1 ? 0xb45309 : 0x9a3412);
+
+            // Bouteille / Carafe de spiritueux
+            const bBody = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.32, 0.35, 1.4, 16),
+                new THREE.MeshStandardMaterial({ color: spiritColor, roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.9 })
+            );
+            bBody.position.set(-cartW / 2 + 1.4 + (i * 1.05), lvl.y + 0.85, (i % 2 === 0 ? 0.6 : -0.6));
+            
+            // Col et bouchon de carafe doré
+            const bNeck = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 0.6, 12), brassMat);
+            bNeck.position.y = 0.95;
+            bBody.add(bNeck);
+            bBody.castShadow = true;
+            bBody.userData = hitBox.userData;
+            STATE.scene.objects.push(bBody);
+            group.add(bBody);
+        }
+    });
+
+    createZoneTitleSign(group, zone.name, 0, cartH + 2.0, 0);
+}
+
 // ── 4. ZONE ARMOIRE À VIN RÉFRIGÉRÉE VITRÉE ──
 function createWineCabinetZone(scene, zone, x, z, rotY) {
     const group = new THREE.Group();
@@ -609,7 +742,7 @@ function onCanvasClick(e, container) {
     const intersects = STATE.scene.raycaster.intersectObjects(STATE.scene.objects);
     if (intersects.length > 0) {
         const d = intersects[0].object.userData;
-        if (d && (d.type === 'slot' || d.type === 'carton' || d.type === 'clayette')) {
+        if (d && (d.type === 'slot' || d.type === 'carton' || d.type === 'clayette' || d.type === 'chariot')) {
             open2DBlockViewer(d.zone_id, d);
         }
     }
@@ -650,13 +783,15 @@ function render2DBlockModal() {
         losange: '<i class="fas fa-cubes-stacked"></i>',
         etagere: '<i class="fas fa-layer-group"></i>',
         cartons: '<i class="fas fa-boxes-stacked"></i>',
-        armoire: '<i class="fas fa-temperature-low"></i>'
+        armoire: '<i class="fas fa-temperature-low"></i>',
+        chariot: '<i class="fas fa-cocktail"></i>'
     };
     const typeNames = {
         losange: 'Casiers Losanges',
         etagere: 'Étagères Murales',
-        cartons: 'Caisses & Cartons au Sol',
-        armoire: 'Armoire Réfrigérée EuroCave'
+        cartons: 'Caisses Bois Brutes au Sol',
+        armoire: 'Armoire Réfrigérée EuroCave',
+        chariot: 'Chariot à Spiritueux & Bières'
     };
 
     if (iconEl) iconEl.innerHTML = typeIcons[zone.type] || '<i class="fas fa-th"></i>';
@@ -688,10 +823,12 @@ function render2DBlockModal() {
         let statsText = '';
         if (zone.type === 'cartons') {
             const cartonNames = [...new Set(zoneStock.map(b => b.carton_label || b.nom).filter(Boolean))];
-            statsText = `<span><strong>${cartonNames.length}</strong> caisses / cartons • <strong>${zoneStock.length}</strong> bouteilles</span>`;
+            statsText = `<span><strong>${cartonNames.length}</strong> caisses en bois scellées • <strong>${zoneStock.length}</strong> bouteilles</span>`;
         } else if (zone.type === 'armoire') {
             const nbClayettes = zone.rows || 6;
             statsText = `<span><strong>${nbClayettes}</strong> clayettes • <strong>${zoneStock.length}</strong> bouteilles en conservation</span>`;
+        } else if (zone.type === 'chariot') {
+            statsText = `<span><strong>2</strong> plateaux de dégustation • <strong>${zoneStock.length}</strong> flacons (Spiritueux & Bières)</span>`;
         } else {
             const totalSlots = (zone.columns || 12) * (zone.rows || 3);
             const usedCoords = new Set(zoneStock.map(b => `${b.emplacement?.col || b.col}_${b.emplacement?.lig || b.lig}`)).size;
@@ -719,6 +856,8 @@ function render2DBlockModal() {
         render2DCartonsBlock(gridEl, zone, zoneStock);
     } else if (zone.type === 'armoire') {
         render2DArmoireBlock(gridEl, zone, zoneStock);
+    } else if (zone.type === 'chariot') {
+        render2DChariotBlock(gridEl, zone, zoneStock);
     } else {
         render2DRackBlock(gridEl, zone, zoneStock);
     }
@@ -770,39 +909,44 @@ function render2DRackBlock(gridEl, zone, zoneStock) {
     }
 }
 
-// ── Grille 2D pour Caisses & Cartons au Sol ──
+// ── Grille 2D pour Caisses en Bois Brutes Non Ouvertes au Sol ──
 function render2DCartonsBlock(gridEl, zone, zoneStock) {
     gridEl.className = 'carton-2d-grid';
-    gridEl.style.gridTemplateColumns = `repeat(auto-fill, minmax(140px, 1fr))`;
+    gridEl.style.gridTemplateColumns = `repeat(auto-fill, minmax(190px, 1fr))`;
     gridEl.innerHTML = '';
 
     // Regrouper par carton_label ou domaine
     const cartonsMap = {};
     zoneStock.forEach(b => {
-        const label = b.carton_label || b.nom || 'Carton Divers';
+        const label = b.carton_label || b.nom || 'Caisse Bois Scellée';
         if (!cartonsMap[label]) cartonsMap[label] = [];
         cartonsMap[label].push(b);
     });
 
-    // Afficher chaque carton existant
+    // Afficher chaque caisse fermée avec estampillage au fer rouge
     Object.entries(cartonsMap).forEach(([label, wines]) => {
         const isSelected = (current2DSelection.carton_label === label);
         const dominant = wines[0]?.type || 'Rouge';
-        const colHex = WINE_COLORS[dominant]?.hex || '#800020';
+        const millesime = wines[0]?.millesime || '';
+        const appellation = wines[0]?.appellation || 'Grand Vin de Propriété';
 
         const box = document.createElement('div');
-        box.className = `carton-2d-box ${isSelected ? 'selected' : ''}`;
-        box.style.borderLeftColor = colHex;
-        box.style.borderLeftWidth = '6px';
+        box.className = `carton-2d-crate ${isSelected ? 'selected' : ''}`;
 
         box.innerHTML = `
-            <div>
-                <div style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; opacity:0.75; font-weight:700;"><i class="fas fa-box"></i> Carton</div>
-                <div style="font-family:'Playfair Display',serif; font-weight:700; font-size:13px; margin:3px 0; color:#2b1808;">${escHtml(label)}</div>
+            <div class="crate-brand-header">
+                <span>⚜ Grand Vin ⚜</span>
+                <span>Caisse Scellée</span>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
-                <span style="font-size:12px; font-weight:700; color:#451a03;">${wines.length} flacon${wines.length > 1 ? 's' : ''}</span>
-                <span class="badge ${WINE_COLORS[dominant]?.css || 'badge-rouge'}" style="font-size:9px;">${dominant}</span>
+            <div class="crate-brand-title">
+                ${escHtml(label)}
+            </div>
+            <div style="text-align:center; font-size:10px; font-weight:700; color:#4a2810; opacity:0.85; margin:2px 0;">
+                ${escHtml(appellation)}${millesime ? ' • ' + millesime : ''}
+            </div>
+            <div class="crate-brand-footer">
+                <span><i class="fas fa-lock" style="font-size:9px; margin-right:3px;"></i> Non ouverte</span>
+                <span style="font-weight:800; font-size:11px;">${wines.length} bll. (${dominant})</span>
             </div>
         `;
 
@@ -813,21 +957,75 @@ function render2DCartonsBlock(gridEl, zone, zoneStock) {
         gridEl.appendChild(box);
     });
 
-    // Emplacement pour ajouter un carton supplémentaire
+    // Emplacement pour ajouter une caisse supplémentaire
     const addBox = document.createElement('div');
-    addBox.className = 'carton-2d-box empty';
-    addBox.style.alignItems = 'center';
-    addBox.style.justifyContent = 'center';
-    addBox.style.textAlign = 'center';
+    addBox.className = 'crate-empty-add';
     addBox.innerHTML = `
-        <i class="fas fa-plus-circle" style="font-size:22px; margin-bottom:6px; opacity:0.6;"></i>
-        <div style="font-size:12px; font-weight:600;">Nouveau Carton</div>
-        <div style="font-size:10px; opacity:0.75;">(1 carton par domaine)</div>
+        <i class="fas fa-plus-circle" style="font-size:26px; margin-bottom:8px; opacity:0.75;"></i>
+        <div style="font-size:13px; font-weight:700;">Nouvelle Caisse</div>
+        <div style="font-size:11px; opacity:0.8; margin-top:2px;">(1 caisse brute par domaine)</div>
     `;
     addBox.onclick = () => {
         quickAddAtSlot(zone.id, 1, 1, '');
     };
     gridEl.appendChild(addBox);
+}
+
+// ── Grille 2D pour Chariot à Spiritueux & Bières ──
+function render2DChariotBlock(gridEl, zone, zoneStock) {
+    gridEl.className = 'chariot-2d-frame';
+    gridEl.innerHTML = '';
+
+    const levels = [
+        { lig: 1, title: 'Plateau Supérieur — Dégustation Active & Service', icon: 'fa-cocktail' },
+        { lig: 2, title: 'Plateau Inférieur — Réserve de Spiritueux & Bières', icon: 'fa-archive' }
+    ];
+
+    levels.forEach(lvl => {
+        const wines = zoneStock.filter(b => Number(b.emplacement?.lig || b.lig) === lvl.lig);
+        const isSelected = (Number(current2DSelection.lig) === lvl.lig && current2DSelection.type === 'chariot');
+
+        const tray = document.createElement('div');
+        tray.className = `chariot-tray ${isSelected ? 'selected' : ''}`;
+
+        let bottlesHtml = '';
+        if (wines.length === 0) {
+            bottlesHtml = `<div style="font-size:11px; color:#cbd5e1; font-style:italic; padding:6px 0;">Plateau vide • Touchez pour ajouter vos flacons de spiritueux ou bières</div>`;
+        } else {
+            bottlesHtml = `
+                <div class="chariot-bottles-grid">
+                    ${wines.map(w => {
+                        const bClass = WINE_COLORS[w.type]?.css || 'badge-spiritueux';
+                        return `
+                            <div style="background:rgba(0,0,0,0.4); border:1px solid rgba(212,175,55,0.4); border-radius:8px; padding:6px 10px; min-width:120px; flex:1;">
+                                <div style="font-weight:700; font-size:12px; color:#fef3c7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                    ${escHtml(w.nom)} ${w.millesime || ''}
+                                </div>
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                                    <span class="badge ${bClass}" style="font-size:9px;">${escHtml(w.type)}</span>
+                                    <span style="font-size:11px; font-weight:700; color:#d4af37;">${w.prix ? w.prix + ' €' : ''}</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        tray.innerHTML = `
+            <div class="chariot-tray-header">
+                <span><i class="fas ${lvl.icon}" style="color:#d4af37; margin-right:6px;"></i> ${lvl.title}</span>
+                <span style="font-size:11px; opacity:0.85;">${wines.length} flacon${wines.length > 1 ? 's' : ''}</span>
+            </div>
+            ${bottlesHtml}
+        `;
+
+        tray.onclick = () => {
+            select2DSlot(zone, 1, lvl.lig, null, 'chariot');
+        };
+
+        gridEl.appendChild(tray);
+    });
 }
 
 // ── Grille 2D pour Armoire EuroCave ──
@@ -904,8 +1102,9 @@ function renderSelectedSlotDetail(zone, sel) {
     }
 
     let titleLabel = `Casier Colonne ${sel.col}, Ligne ${sel.lig}`;
-    if (sel.type === 'carton') titleLabel = `Carton : ${sel.carton_label || 'Carton de vin'}`;
+    if (sel.type === 'carton') titleLabel = `Caisse Bois Scellée : ${sel.carton_label || 'Vin en caisse'}`;
     else if (sel.type === 'clayette') titleLabel = `Clayette ${sel.lig} (${zone.name})`;
+    else if (sel.type === 'chariot') titleLabel = `${zone.name} — ${sel.lig === 1 ? 'Plateau Supérieur' : 'Plateau Inférieur'}`;
 
     let contentHtml = '';
     if (wines.length === 0) {
