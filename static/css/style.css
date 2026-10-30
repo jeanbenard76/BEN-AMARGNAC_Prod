@@ -871,16 +871,15 @@ th {
 /* SMARTPHONES ET TABLETTES EN MODE PORTRAIT (< 860px) */
 @media (max-width: 860px) {
     html, body {
-        height: 100dvh !important;
-        min-height: 100vh !important;
-        overflow: hidden !important;
-        position: fixed;
-        width: 100%;
+        height: auto !important;
+        min-height: 100% !important;
+        overflow-x: hidden !important;
+        position: static !important;
+        width: 100% !important;
     }
 
     body {
-        display: flex !important;
-        flex-direction: column !important;
+        display: block !important;
         background-color: var(--bg-light);
     }
 
@@ -889,17 +888,19 @@ th {
         display: none !important;
     }
 
-    /* 2. Topbar Mobile */
+    /* 2. Topbar Mobile Fixe en haut */
     .mobile-topbar {
         display: flex !important;
-        align-items: center;
-        justify-content: space-between;
-        height: 56px;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        height: 56px !important;
         background: var(--bg-dark);
         color: white;
         padding: 0 14px;
-        flex-shrink: 0;
-        z-index: 100;
+        z-index: 9999 !important;
         box-shadow: 0 2px 8px rgba(0,0,0,0.25);
     }
     .mobile-topbar-brand {
@@ -957,30 +958,34 @@ th {
         transform: scale(0.95);
     }
 
-    /* 3. Zone de contenu scrollable */
+    /* 3. Zone de contenu avec padding top et bottom pour dégager les barres fixes */
     .content {
-        flex: 1 !important;
-        height: calc(100dvh - 56px - 60px) !important;
-        padding: 14px 12px 20px 12px !important;
-        overflow-y: auto !important;
-        -webkit-overflow-scrolling: touch;
+        display: block !important;
         width: 100% !important;
+        box-sizing: border-box !important;
+        padding: 68px 12px 82px 12px !important;
+        min-height: 100vh !important;
+        overflow-y: visible !important;
     }
 
-    /* 4. Barre de navigation basse (Bottom Nav) */
+    /* 4. Barre de navigation basse (Bottom Nav) FIXE EN BAS DE L'ÉCRAN */
     .mobile-bottom-nav {
         display: flex !important;
-        height: 60px;
-        background: rgba(18, 20, 24, 0.96);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border-top: 1px solid rgba(255,255,255,0.12);
-        flex-shrink: 0;
-        z-index: 150;
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        height: 62px !important;
+        background: #111827 !important;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-top: 1px solid rgba(255,255,255,0.15) !important;
+        z-index: 9999 !important;
         justify-content: space-around;
         align-items: center;
         padding-bottom: env(safe-area-inset-bottom);
-        box-shadow: 0 -2px 12px rgba(0,0,0,0.3);
+        box-shadow: 0 -3px 16px rgba(0,0,0,0.4);
     }
     .mobile-nav-item {
         flex: 1;
