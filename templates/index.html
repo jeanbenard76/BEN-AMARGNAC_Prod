@@ -470,13 +470,13 @@
                     </div>
                     <div class="row">
                         <div class="input-group">
-                            <label for="f_prix">Prix unitaire (€)</label>
-                            <div style="display: flex; gap: 6px; align-items: stretch;">
-                                <input type="number" id="f_prix" step="0.5" min="0" placeholder="0.00" style="flex: 1;">
-                                <button type="button" id="btnIdealwineEstimate" class="btn-secondary" style="padding: 8px 10px; font-size: 12px; white-space: nowrap; flex-shrink: 0;" title="Estimer la cote selon l'argus iDealwine">
-                                    <i class="fas fa-search-dollar"></i> Cote iDealwine
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <label for="f_prix" style="margin-bottom: 0;">Prix unitaire (€)</label>
+                                <button type="button" id="btnIdealwineEstimate" onclick="triggerIdealwineEstimate(event)" class="btn-secondary btn-cote-idealwine" title="Estimer la cote selon l'argus iDealwine">
+                                    <i class="fas fa-search-dollar"></i> <span>Cote iDealwine</span>
                                 </button>
                             </div>
+                            <input type="number" id="f_prix" step="0.5" min="0" placeholder="0.00">
                             <div id="idealwineEstimateHint" style="font-size: 11px; margin-top: 5px; display: none;"></div>
                         </div>
                         <div class="input-group">

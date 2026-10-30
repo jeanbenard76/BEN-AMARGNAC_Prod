@@ -755,60 +755,93 @@ function setupFormListeners() {
     // Bouton Estimation Cote iDealwine
     const btnEstimate = document.getElementById('btnIdealwineEstimate');
     if (btnEstimate) {
-        btnEstimate.addEventListener('click', async () => {
-            const nom = (document.getElementById('f_nom')?.value || '').trim();
-            const millesime = (document.getElementById('f_millesime')?.value || '').trim();
-            const appellation = (document.getElementById('f_appellation')?.value || '').trim();
-            const region = (document.getElementById('f_region')?.value || '').trim();
-
-            if (!nom) {
-                showToast('Renseignez d\'abord le nom du domaine pour estimer sa cote', 'info');
-                document.getElementById('f_nom')?.focus();
-                return;
-            }
-
-            btnEstimate.disabled = true;
-            btnEstimate.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recherche...';
-
-            try {
-                const res = await API.wine.getEstimate(nom, millesime, appellation, region);
-                if (res.success) {
-                    const priceInput = document.getElementById('f_prix');
-                    if (priceInput) {
-                        priceInput.value = res.estimate_price;
-                        priceInput.style.backgroundColor = 'rgba(16, 185, 129, 0.15)';
-                        setTimeout(() => priceInput.style.backgroundColor = '', 1500);
-                    }
-
-                    const hintEl = document.getElementById('idealwineEstimateHint');
-                    if (hintEl) {
-                        hintEl.style.display = 'block';
-                        hintEl.innerHTML = `
-                            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-top:6px; background:#f0fdf4; border:1px solid #bbf7d0; padding:8px 12px; border-radius:8px;">
-                                <div>
-                                    <span style="color:#15803d; font-weight:700; font-size:13px;">
-                                        <i class="fas fa-check-circle"></i> Cote de référence : ~${res.estimate_price} €
-                                    </span>
-                                    <span style="color:#4b5563; font-size:11px; margin-left:4px;">(Fourchette : ${res.low_estimate} € - ${res.high_estimate} €)</span>
-                                </div>
-                                <a href="${res.idealwine_url}" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:5px; font-size:11px; color:#ffffff; background:#800020; padding:4px 10px; border-radius:6px; font-weight:600; text-decoration:none;">
-                                    Vérifier sur iDealwine <i class="fas fa-external-link-alt" style="font-size:9px;"></i>
-                                </a>
-                            </div>
-                        `;
-                    }
-                    showToast(`Cote appliquée : ~${res.estimate_price} € (${nom} ${millesime})`, 'success');
-                }
-            } catch (err) {
-                showToast('Impossible d\'obtenir la cote pour ce flacon', 'error');
-            } finally {
-                btnEstimate.disabled = false;
-                btnEstimate.innerHTML = '<i class="fas fa-search-dollar"></i> Cote iDealwine';
-            }
-        });
+        btnEstimate.addEventListener('click', (e) => triggerIdealwineEstimate(e));
+        btnEstimate.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            triggerIdealwineEstimate(e);
+        }, { passive: false });
     }
 
 }
+
+
+let isEstimatingIdealwine = false;
+async function triggerIdealwineEstimate(e) {
+    if (e && typeof e.preventDefault === 'function') {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    if (isEstimatingIdealwine) return;
+
+    // Fermer le clavier virtuel du smartphone pour stabiliser la vue
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+    }
+
+    const btnEstimate = document.getElementById('btnIdealwineEstimate');
+    const nom = (document.getElementById('f_nom')?.value || '').trim();
+    const millesime = (document.getElementById('f_millesime')?.value || '').trim();
+    const appellation = (document.getElementById('f_appellation')?.value || '').trim();
+    const region = (document.getElementById('f_region')?.value || '').trim();
+
+    if (!nom) {
+        showToast('Renseignez d\'abord le nom du domaine pour estimer sa cote', 'info');
+        const nomEl = document.getElementById('f_nom');
+        if (nomEl) {
+            nomEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            nomEl.focus();
+        }
+        return;
+    }
+
+    isEstimatingIdealwine = true;
+    if (btnEstimate) {
+        btnEstimate.disabled = true;
+        btnEstimate.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Recherche...</span>';
+    }
+
+    try {
+        const res = await API.wine.getEstimate(nom, millesime, appellation, region);
+        if (res && res.success) {
+            const priceInput = document.getElementById('f_prix');
+            if (priceInput) {
+                priceInput.value = res.estimate_price;
+                priceInput.style.backgroundColor = 'rgba(16, 185, 129, 0.2)';
+                setTimeout(() => priceInput.style.backgroundColor = '', 1500);
+            }
+
+            const hintEl = document.getElementById('idealwineEstimateHint');
+            if (hintEl) {
+                hintEl.style.display = 'block';
+                hintEl.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-top:6px; background:#f0fdf4; border:1px solid #bbf7d0; padding:8px 12px; border-radius:8px;">
+                        <div>
+                            <span style="color:#15803d; font-weight:700; font-size:13px;">
+                                <i class="fas fa-check-circle"></i> Cote de référence : ~${res.estimate_price} €
+                            </span>
+                            <span style="color:#4b5563; font-size:11px; margin-left:4px;">(Fourchette : ${res.low_estimate} € - ${res.high_estimate} €)</span>
+                        </div>
+                        <a href="${res.idealwine_url}" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:5px; font-size:11px; color:#ffffff; background:#800020; padding:5px 12px; border-radius:6px; font-weight:600; text-decoration:none;">
+                            Vérifier sur iDealwine <i class="fas fa-external-link-alt" style="font-size:9px;"></i>
+                        </a>
+                    </div>
+                `;
+            }
+            showToast(`Cote appliquée : ~${res.estimate_price} € (${nom} ${millesime})`, 'success');
+        } else {
+            showToast(res?.error || 'Aucune cote trouvée pour ce flacon', 'info');
+        }
+    } catch (err) {
+        showToast('Impossible d\'obtenir la cote pour ce flacon', 'error');
+    } finally {
+        isEstimatingIdealwine = false;
+        if (btnEstimate) {
+            btnEstimate.disabled = false;
+            btnEstimate.innerHTML = '<i class="fas fa-search-dollar"></i> <span>Cote iDealwine</span>';
+        }
+    }
+}
+window.triggerIdealwineEstimate = triggerIdealwineEstimate;
 
 function clearWineForm() {
     document.getElementById('f_nom').value = '';
@@ -823,6 +856,7 @@ function clearWineForm() {
     document.getElementById('f_col').value = 1;
     document.getElementById('f_lig').value = 1;
     document.getElementById('f_notes').value = '';
+    const hint = document.getElementById('idealwineEstimateHint'); if (hint) { hint.style.display = 'none'; hint.innerHTML = ''; }
 }
 
 async function handleWineSubmit(shouldClose) {
