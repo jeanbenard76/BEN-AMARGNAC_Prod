@@ -840,10 +840,10 @@ async function triggerIdealwineEstimate(e) {
             }
             showToast(`Cote appliquée : ~${res.estimate_price} € (${nom} ${millesime})`, 'success');
         } else {
-            showToast(res?.error || 'Aucune cote trouvée pour ce flacon', 'info');
+            showToast(res?.error || 'Aucune cote trouvée pour cette bouteille', 'info');
         }
     } catch (err) {
-        showToast('Impossible d\'obtenir la cote pour ce flacon', 'error');
+        showToast('Impossible d\'obtenir la cote pour cette bouteille', 'error');
     } finally {
         isEstimatingIdealwine = false;
         if (btnEstimate) {
@@ -1132,10 +1132,10 @@ function renderInventoryTable() {
             mobileCardsContainer.innerHTML = `
                 <div class="mobile-empty-inventory">
                     <i class="fas fa-wine-bottle"></i>
-                    <h4>Aucun flacon trouvé</h4>
+                    <h4>Aucune bouteille trouvée</h4>
                     <p>Modifiez vos filtres ou ajoutez une nouvelle bouteille à votre cave.</p>
                     <button type="button" class="btn-primary" onclick="document.getElementById('btnAddWine')?.click()" style="margin-top:12px; font-size:13px; padding:8px 16px;">
-                        <i class="fas fa-plus"></i> Ajouter un flacon
+                        <i class="fas fa-plus"></i> Ajouter une bouteille
                     </button>
                 </div>
             `;
@@ -1195,7 +1195,7 @@ function renderInventoryTable() {
                         <td>${b.prix ? b.prix.toFixed(2) + ' €' : '—'}</td>
                         <td>${apogeeBadge}</td>
                         <td class="text-right">
-                            <button class="action-btn drink-btn" title="Déguster ce flacon" onclick="openTastingForBottle(${b.id})">
+                            <button class="action-btn drink-btn" title="Déguster cette bouteille" onclick="openTastingForBottle(${b.id})">
                                 <i class="fas fa-wine-glass-alt"></i>
                             </button>
                             <button class="action-btn" title="Modifier" onclick="openEditWineModal(${b.id})">
@@ -1291,7 +1291,7 @@ function renderInventoryTable() {
                             ${apogeeBadge}
                         </div>
                         <div class="mobile-bottle-actions">
-                            <button type="button" class="btn-m-action m-drink" onclick="openTastingForBottle(${b.id})" title="Déguster ce flacon">
+                            <button type="button" class="btn-m-action m-drink" onclick="openTastingForBottle(${b.id})" title="Déguster cette bouteille">
                                 <i class="fas fa-wine-glass-alt"></i> <span>Déguster</span>
                             </button>
                             <button type="button" class="btn-m-action m-edit" onclick="openEditWineModal(${b.id})" title="Modifier la fiche">
@@ -1312,7 +1312,7 @@ function renderInventoryTable() {
                         <div class="mobile-wine-info">
                             <div class="mobile-wine-title-line">
                                 <h3 class="mobile-wine-title">${escHtml(domaine)}</h3>
-                                <span class="mobile-wine-count">${totalQty} ${totalQty > 1 ? 'flacons' : 'flacon'}</span>
+                                <span class="mobile-wine-count">${totalQty} ${totalQty > 1 ? 'bouteilles' : 'bouteille'}</span>
                             </div>
                             <div class="mobile-wine-subline">
                                 <span class="sommelier-tag" style="background:${colorHex}15; color:${colorHex}; border-color:${colorHex}30;">${first.type}</span>
@@ -1527,7 +1527,7 @@ function renderDashboardCharts(stock) {
                 data: {
                     labels: Object.keys(apogeeGroups),
                     datasets: [{
-                        label: 'Flacons',
+                        label: 'Bouteilles',
                         data: Object.values(apogeeGroups),
                         backgroundColor: ['#ef4444', '#10b981', '#3b82f6', '#9ca3af'],
                         borderRadius: 6
@@ -1712,7 +1712,7 @@ function renderHistoryFeed() {
                 <i class="fas fa-wine-glass-alt" style="font-size: 36px; color: #9ca3af; margin-bottom: 12px;"></i>
                 <h3>${all.length === 0 ? 'Aucune dégustation enregistrée' : 'Aucun résultat avec ces filtres'}</h3>
                 <p style="color: #6b7280; font-size: 14px;">${all.length === 0
-                    ? 'Chaque fois que vous dégustez un flacon depuis votre cave, il sera consigné ici avec vos notes et souvenirs.'
+                    ? 'Chaque fois que vous dégustez une bouteille depuis votre cave, elle sera consignée ici avec vos notes et souvenirs.'
                     : "Modifiez ou réinitialisez vos filtres pour voir d'autres dégustations."}</p>
             </div>
         `;
@@ -1788,7 +1788,7 @@ function renderHistoryFeed() {
                 ${entry.commentaire ? `<div class="history-card-comment" style="margin-top:10px; font-size:14px; color:#374151; font-style:italic;">« ${escHtml(entry.commentaire)} »</div>` : ''}
                 ${footerItems ? `<div class="history-card-footer" style="margin-top:12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">${footerItems}</div>` : ''}
             </div>
-            ${entry.photo_base64 ? `<div class="history-card-photo" style="display:flex; align-items:center; padding:12px;"><img src="${entry.photo_base64}" style="max-height:140px; border-radius:8px; border:1px solid var(--border);" alt="Photo flacon" loading="lazy"></div>` : ''}
+            ${entry.photo_base64 ? `<div class="history-card-photo" style="display:flex; align-items:center; padding:12px;"><img src="${entry.photo_base64}" style="max-height:140px; border-radius:8px; border:1px solid var(--border);" alt="Photo bouteille" loading="lazy"></div>` : ''}
         `;
         feed.appendChild(card);
     });
@@ -2441,7 +2441,7 @@ function initIO() {
                     if (!confirm('Importer ces vins dans votre cave actuelle ?')) return;
 
                     const res = await API.inventory.import(parsed);
-                    showToast(`${res.bottles_imported} flacon(s) importé(s) avec succès !`, 'success');
+                    showToast(`${res.bottles_imported} bouteille(s) importée(s) avec succès !`, 'success');
                     await loadAllUserData();
                 } catch (err) {
                     showToast('Fichier JSON invalide', 'error');
@@ -2505,7 +2505,7 @@ function updateMapMarkers() {
                 fillColor: '#800020',
                 fillOpacity: 0.7,
                 radius: Math.min(25, 8 + count * 2)
-            }).addTo(STATE.map).bindPopup(`<b>${reg}</b><br>${count} flacon(s) en cave`);
+            }).addTo(STATE.map).bindPopup(`<b>${reg}</b><br>${count} bouteille(s) en cave`);
         }
     });
 }

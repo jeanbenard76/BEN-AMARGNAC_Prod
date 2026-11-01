@@ -958,7 +958,7 @@ def estimate_wine_route():
     region = request.args.get('region', '').strip()
 
     if not nom:
-        return jsonify({'error': 'Nom du flacon requis'}), 400
+        return jsonify({'error': 'Nom de la bouteille requis'}), 400
 
     est_price, low_price, high_price = calculate_market_estimate(nom, millesime, appellation, region)
     query_str = f"{nom} {millesime}".strip().replace(' ', '+')

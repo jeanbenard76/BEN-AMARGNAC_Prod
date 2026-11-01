@@ -9,7 +9,7 @@ Ce guide vous accompagne pas à pas pour déployer votre application **BEN'ARMAG
 1. **Multi-Utilisateurs avec Isolation Totale** :
    - Inscription et connexion sécurisées (mots de passe hachés, sessions protégées).
    - Chaque utilisateur choisit son **nom de caviste** (ex: *« Cave de Benjamin »*, *« Le Chai de Julien »*).
-   - Les caves, flacons, dégustations et agencements sont entièrement cloisonnés par utilisateur.
+   - Les caves, bouteilles, dégustations et agencements sont entièrement cloisonnés par utilisateur.
 
 2. **Personnalisation Complète des Moyens de Conservation (Agencement)** :
    - Les utilisateurs choisissent librement comment ils conservent leur vin :

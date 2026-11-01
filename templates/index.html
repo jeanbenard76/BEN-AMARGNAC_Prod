@@ -14,7 +14,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,400;1,600&family=Playfair+Display:ital,wght@0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
 <!-- Feuilles de styles -->
-<link rel="stylesheet" href="/static/css/style.css?v=5.1.0">
+<link rel="stylesheet" href="/static/css/style.css?v=5.2.0">
 </head>
 <body>
 
@@ -28,7 +28,7 @@
         </div>
     </div>
     <div class="mobile-topbar-actions">
-        <button type="button" id="btnMobileAddWine" class="mobile-icon-btn" title="Ajouter un flacon">
+        <button type="button" id="btnMobileAddWine" class="mobile-icon-btn" title="Ajouter une bouteille">
             <i class="fas fa-plus"></i>
         </button>
         <button type="button" id="btnMobileProfile" class="mobile-icon-btn" title="Mon profil">
@@ -103,7 +103,7 @@
             </div>
             <div>
                 <button class="btn-primary" onclick="document.querySelector('[data-target=inventory]').click(); document.getElementById('btnAddWine').click();">
-                    <i class="fas fa-plus"></i> Nouveau Flacon
+                    <i class="fas fa-plus"></i> Nouvelle Bouteille
                 </button>
             </div>
         </div>
@@ -167,10 +167,10 @@
         <div class="view-header">
             <div>
                 <h1>Livre de Cave</h1>
-                <div class="date-indicator">Inventaire détaillé de vos flacons</div>
+                <div class="date-indicator">Inventaire détaillé de vos bouteilles</div>
             </div>
             <button id="btnAddWine" class="btn-primary">
-                <i class="fas fa-plus"></i> Ajouter un flacon
+                <i class="fas fa-plus"></i> Ajouter une bouteille
             </button>
         </div>
 
@@ -476,12 +476,12 @@
             <input type="hidden" id="edit_bottle_id">
             <div class="form-grid">
                 <div class="form-column">
-                    <div class="form-section-title"><i class="fas fa-wine-bottle"></i> Flacon & Caractéristiques</div>
+                    <div class="form-section-title"><i class="fas fa-wine-bottle"></i> Bouteille & Caractéristiques</div>
                     <div class="input-group">
-                        <label for="f_nom">Domaine / Nom du flacon *</label>
+                        <label for="f_nom">Domaine / Nom de la bouteille *</label>
                         <input type="text" id="f_nom" required placeholder="Ex: Château Margaux" autocomplete="off">
                     </div>
-                    <div class="row">
+                    <div class="row row-millesime-type">
                         <div class="input-group">
                             <label for="f_millesime">Millésime</label>
                             <input type="number" id="f_millesime" min="1900" max="2099" placeholder="2018" inputmode="numeric">
@@ -499,7 +499,7 @@
                             </select>
                         </div>
                     </div>
-                    <div class="row">
+                    <div class="row row-appellation-region">
                         <div class="input-group">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
                                 <label for="f_appellation" style="margin-bottom:0;">Appellation / Cru</label>
@@ -514,7 +514,7 @@
                             <input type="text" id="f_region" placeholder="Ex: Bordeaux, Gascogne, Bourgogne...">
                         </div>
                     </div>
-                    <div class="row">
+                    <div class="row row-prix-quantite">
                         <div class="input-group">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                                 <label for="f_prix" style="margin-bottom: 0;">Prix unitaire (€)</label>
@@ -560,7 +560,7 @@
                     </div>
 
                     <!-- Si espace Casiers / Étagères : Colonne et Ligne -->
-                    <div id="placementGridGroup" class="row">
+                    <div id="placementGridGroup" class="row form-row-2col">
                         <div class="input-group">
                             <label for="f_col">Colonne</label>
                             <input type="number" id="f_col" min="1" value="1" inputmode="numeric">
@@ -574,7 +574,7 @@
                     <div class="separator"></div>
 
                     <div class="form-section-title"><i class="fas fa-hourglass-half"></i> Maturité & Notes</div>
-                    <div class="row">
+                    <div class="row form-row-2col">
                         <div class="input-group">
                             <label for="f_apogee_debut">Apogée début</label>
                             <input type="number" id="f_apogee_debut" placeholder="2025" inputmode="numeric">
@@ -593,17 +593,17 @@
 
             <div class="modal-footer">
                 <button type="submit" class="btn-primary btn-save-main" style="font-weight:700; font-size:15px;">
-                    <i class="fas fa-check"></i> Enregistrer ce flacon
+                    <i class="fas fa-check"></i> Enregistrer cette bouteille
                 </button>
                 <div class="modal-footer-subactions">
                     <label class="save-another-toggle" id="lblSaveAnother">
                         <input type="checkbox" id="chkAddAnother">
-                        <span>Enchaîner avec un autre flacon</span>
+                        <span>Enchaîner avec une autre bouteille</span>
                     </label>
                     <button type="button" id="btnSaveAndAddAnother" class="btn-secondary desktop-only-btn">
                         <i class="fas fa-plus"></i> Enregistrer et ajouter un autre
                     </button>
-                    <button type="button" class="btn-ghost desktop-only-btn" onclick="document.getElementById('modalAdd').classList.add('hidden')">
+                    <button type="button" class="btn-ghost" onclick="document.getElementById('modalAdd').classList.add('hidden')">
                         Annuler
                     </button>
                 </div>
@@ -760,7 +760,7 @@
 
             <!-- Photo -->
             <div class="tasting-section">
-                <div class="tasting-section-label"><i class="fas fa-camera"></i> Photo du flacon ou de l'étiquette</div>
+                <div class="tasting-section-label"><i class="fas fa-camera"></i> Photo de la bouteille ou de l'étiquette</div>
                 <div class="photo-upload-zone" id="photoUploadZone" style="position:relative; border:2px dashed var(--border); padding:16px; text-align:center; border-radius:8px; cursor:pointer;">
                     <i class="fas fa-cloud-upload-alt" style="font-size:24px; color:var(--text-muted);"></i>
                     <div>Cliquez pour choisir une photo</div>
@@ -853,16 +853,16 @@
 
         <!-- En-tête épuré et compact -->
         <div class="modal-header block-modal-header">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <div id="blockViewerIcon" class="block-viewer-avatar">
+            <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
+                <div id="blockViewerIcon" class="block-viewer-avatar" style="flex-shrink: 0;">
                     <i class="fas fa-boxes"></i>
                 </div>
-                <div>
-                    <h2 id="blockViewerTitle" style="font-size: 16px; font-weight: 700; margin: 0; color: var(--primary); font-family: 'Playfair Display', serif;">Plan de la Cave</h2>
-                    <div id="blockViewerSubtitle" style="font-size: 11px; color: var(--text-muted); margin-top: 1px;">Touchez une caisse ou un casier pour voir son contenu</div>
+                <div style="min-width: 0; flex: 1; overflow: hidden;">
+                    <h2 id="blockViewerTitle" style="font-size: 15px; font-weight: 700; margin: 0; color: var(--primary); font-family: 'Playfair Display', serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Plan de la Cave</h2>
+                    <div id="blockViewerSubtitle" style="font-size: 11px; color: var(--text-muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Touchez une caisse ou un casier pour voir son contenu</div>
                 </div>
             </div>
-            <button type="button" class="close-modal-btn-x" onclick="closeModalSlot()" aria-label="Fermer">×</button>
+            <button type="button" class="close-modal-btn-x" onclick="closeModalSlot()" aria-label="Fermer" style="flex-shrink: 0;">×</button>
         </div>
 
         <!-- Onglets des espaces de stockage (pilules défilantes) -->
@@ -1022,10 +1022,10 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <!-- Application Scripts -->
-<script src="/static/js/api.js?v=5.1.0"></script>
-<script src="/static/js/state.js?v=5.1.0"></script>
-<script src="/static/js/visualizer3d.js?v=5.1.0"></script>
-<script src="/static/js/app.js?v=5.1.0"></script>
+<script src="/static/js/api.js?v=5.2.0"></script>
+<script src="/static/js/state.js?v=5.2.0"></script>
+<script src="/static/js/visualizer3d.js?v=5.2.0"></script>
+<script src="/static/js/app.js?v=5.2.0"></script>
 
 </body>
 </html>

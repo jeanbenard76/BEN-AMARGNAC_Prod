@@ -818,7 +818,7 @@ function render2DBlockModal() {
 
     if (iconEl) iconEl.innerHTML = typeIcons[zone.type] || '<i class="fas fa-th"></i>';
     if (titleEl) titleEl.textContent = zone.name;
-    if (subEl) subEl.textContent = `${zoneStock.length} flacon${zoneStock.length > 1 ? 's' : ''} en réserve dans cet espace`;
+    if (subEl) subEl.textContent = `${zoneStock.length} bouteille${zoneStock.length > 1 ? 's' : ''} en réserve dans cet espace`;
 
     // 2. Onglets pour basculer facilement entre les différents blocs
     const tabsEl = document.getElementById('blockZoneTabs');
@@ -974,7 +974,7 @@ function render2DChariotBlock(gridEl, zone, zoneStock) {
 
         let bottlesHtml = '';
         if (wines.length === 0) {
-            bottlesHtml = `<div style="font-size:11px; color:#cbd5e1; font-style:italic; padding:6px 0;">Plateau vide • Touchez pour ajouter vos flacons de spiritueux ou bières</div>`;
+            bottlesHtml = `<div style="font-size:11px; color:#cbd5e1; font-style:italic; padding:6px 0;">Plateau vide • Touchez pour ajouter vos bouteilles de spiritueux ou bières</div>`;
         } else {
             bottlesHtml = `
                 <div class="chariot-bottles-grid">
@@ -999,7 +999,7 @@ function render2DChariotBlock(gridEl, zone, zoneStock) {
         tray.innerHTML = `
             <div class="chariot-tray-header">
                 <span><i class="fas ${lvl.icon}" style="color:#d4af37; margin-right:6px;"></i> ${lvl.title}</span>
-                <span style="font-size:11px; opacity:0.85;">${wines.length} flacon${wines.length > 1 ? 's' : ''}</span>
+                <span style="font-size:11px; opacity:0.85;">${wines.length} bouteille${wines.length > 1 ? 's' : ''}</span>
             </div>
             ${bottlesHtml}
         `;
