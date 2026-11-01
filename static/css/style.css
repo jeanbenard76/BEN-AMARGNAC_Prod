@@ -854,9 +854,12 @@ th {
    BEN'ARMAGNAC — DESIGN MOBILE RESPONSIVE ULTRA-OPTIMISÉ (iOS & Android)
    ===================================================================== */
 
-/* Par défaut sur Desktop (écrans larges) */
-.mobile-topbar, .mobile-bottom-nav {
+/* Par défaut sur Desktop (écrans larges > 860px) */
+.mobile-topbar, .mobile-bottom-nav, .inventory-mobile-cards, .mobile-filter-chips-bar, .sheet-drag-handle, .save-another-toggle {
     display: none !important;
+}
+.desktop-inventory-table {
+    display: block !important;
 }
 
 @media (min-width: 861px) and (max-width: 1100px) {
@@ -898,12 +901,14 @@ th {
         left: 0 !important;
         right: 0 !important;
         width: 100% !important;
-        height: 56px !important;
-        background: var(--bg-dark);
+        height: calc(52px + env(safe-area-inset-top, 0px)) !important;
+        padding: env(safe-area-inset-top, 0px) 14px 0 14px !important;
+        background: #0f172a !important;
         color: white;
-        padding: 0 14px;
         z-index: 9999 !important;
         box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+        align-items: center;
+        justify-content: space-between;
     }
     .mobile-topbar-brand {
         display: flex;
@@ -945,7 +950,7 @@ th {
         width: 36px;
         height: 36px;
         border-radius: 50%;
-        background: rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.12);
         border: none;
         color: white;
         display: flex;
@@ -953,24 +958,24 @@ th {
         justify-content: center;
         font-size: 14px;
         cursor: pointer;
-        transition: 0.2s;
+        transition: 0.15s;
     }
     .mobile-icon-btn:active {
         background: var(--primary);
         transform: scale(0.95);
     }
 
-    /* 3. Zone de contenu avec padding top et bottom pour dégager les barres fixes */
+    /* 3. Zone de contenu avec padding sécurisé iPhone */
     .content {
         display: block !important;
         width: 100% !important;
         box-sizing: border-box !important;
-        padding: 68px 12px 82px 12px !important;
+        padding: calc(62px + env(safe-area-inset-top, 0px)) 12px calc(74px + env(safe-area-inset-bottom, 0px)) 12px !important;
         min-height: 100vh !important;
         overflow-y: visible !important;
     }
 
-    /* 4. Barre de navigation basse (Bottom Nav) FIXE EN BAS DE L'ÉCRAN */
+    /* 4. Barre de navigation basse (Bottom Nav) */
     .mobile-bottom-nav {
         display: flex !important;
         position: fixed !important;
@@ -978,16 +983,14 @@ th {
         left: 0 !important;
         right: 0 !important;
         width: 100% !important;
-        height: 62px !important;
-        background: #111827 !important;
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border-top: 1px solid rgba(255,255,255,0.15) !important;
+        height: calc(56px + env(safe-area-inset-bottom, 0px)) !important;
+        padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+        background: #0f172a !important;
+        border-top: 1px solid rgba(255,255,255,0.08) !important;
         z-index: 9999 !important;
         justify-content: space-around;
         align-items: center;
-        padding-bottom: env(safe-area-inset-bottom);
-        box-shadow: 0 -3px 16px rgba(0,0,0,0.4);
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.3) !important;
     }
     .mobile-nav-item {
         flex: 1;
@@ -995,19 +998,19 @@ th {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 3px;
+        gap: 2px;
         background: transparent;
         border: none;
-        color: #9ca3af;
+        color: #94a3b8;
         font-size: 10px;
         font-weight: 500;
         cursor: pointer;
-        padding: 6px 2px;
+        padding: 5px 1px;
         transition: all 0.15s;
         -webkit-tap-highlight-color: transparent;
     }
     .mobile-nav-item i {
-        font-size: 17px;
+        font-size: 16px;
         transition: transform 0.15s;
     }
     .mobile-nav-item.active {
@@ -1023,87 +1026,332 @@ th {
     .view-header {
         flex-direction: column !important;
         align-items: stretch !important;
-        gap: 12px !important;
-        margin-bottom: 18px !important;
+        gap: 8px !important;
+        margin-bottom: 14px !important;
     }
     .view-header h1 {
-        font-size: 22px !important;
+        font-size: 20px !important;
+        line-height: 1.2 !important;
+    }
+    .date-indicator {
+        font-size: 12px !important;
     }
     .view-header .btn-primary, .view-header .btn-secondary {
         width: 100% !important;
         justify-content: center !important;
-        padding: 12px !important;
-    }
-
-    /* 6. Dashboard & KPIs */
-    .kpi-grid {
-        grid-template-columns: 1fr !important;
-        gap: 10px !important;
-        margin-bottom: 18px !important;
-    }
-    .kpi {
-        padding: 14px 16px !important;
-        gap: 14px !important;
-    }
-    .kpi-icon {
-        width: 44px !important;
-        height: 44px !important;
-        font-size: 18px !important;
+        padding: 10px 14px !important;
+        font-size: 14px !important;
         border-radius: 10px !important;
     }
+
+    /* 6. Dashboard & KPIs (Disposition en grille 3 compacte) */
+    .kpi-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 8px !important;
+        margin-bottom: 14px !important;
+    }
+    .kpi {
+        padding: 10px 6px !important;
+        gap: 6px !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        text-align: center !important;
+        border-radius: 12px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
+    }
+    .kpi-icon {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 13px !important;
+        border-radius: 8px !important;
+    }
+    .kpi-label {
+        font-size: 10px !important;
+        line-height: 1.15 !important;
+        margin-bottom: 2px !important;
+        color: #64748b !important;
+    }
     .kpi-value {
-        font-size: 22px !important;
+        font-size: 15px !important;
+        font-weight: 700 !important;
     }
     .charts-grid {
         grid-template-columns: 1fr !important;
-        gap: 14px !important;
+        gap: 12px !important;
     }
     .chart-container {
-        min-height: 260px !important;
-        padding: 16px !important;
+        min-height: 240px !important;
+        padding: 14px !important;
+        border-radius: 12px !important;
     }
 
-    /* 7. Livre de cave & Recherche */
-    .toolbar {
+    /* 7. Livre de cave & Recherche Mobile-First */
+    .inventory-toolbar {
         flex-direction: column !important;
         align-items: stretch !important;
         gap: 8px !important;
-        padding: 12px !important;
+        padding: 10px 12px !important;
+        margin-bottom: 10px !important;
+        border-radius: 12px !important;
     }
     .search-group {
         width: 100% !important;
         min-width: 0 !important;
     }
     .search-group input {
-        font-size: 16px !important; /* Évite le zoom automatique iOS Safari */
-    }
-    .toolbar select {
-        width: 100% !important;
-        min-width: 0 !important;
         font-size: 15px !important;
         padding: 10px 12px !important;
+        border-radius: 8px !important;
+    }
+    .desktop-filter-select {
+        display: none !important;
+    }
+    .toolbar-selects select {
+        width: 100% !important;
+        font-size: 14px !important;
+        padding: 9px 12px !important;
+        border-radius: 8px !important;
     }
 
-    /* Tableau Scrollable */
-    .table-wrapper {
+    /* Puces filtres tactiles défilantes */
+    .mobile-filter-chips-bar {
+        display: flex !important;
+        gap: 8px !important;
         overflow-x: auto !important;
-        -webkit-overflow-scrolling: touch;
-        border-radius: 10px !important;
-        margin: 0 -4px;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+        margin-bottom: 12px !important;
+        padding: 2px 2px 6px 2px !important;
     }
-    table {
-        min-width: 580px;
+    .mobile-filter-chips-bar::-webkit-scrollbar {
+        display: none !important;
     }
-    th, td {
-        padding: 10px 12px !important;
-        font-size: 12px !important;
+    .mobile-chip {
+        flex-shrink: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 5px !important;
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        color: #475569 !important;
+        padding: 7px 13px !important;
+        border-radius: 20px !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        cursor: pointer !important;
+        transition: all 0.15s ease !important;
+        -webkit-tap-highlight-color: transparent !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
     }
-    .action-btn {
-        padding: 8px 10px !important;
-        font-size: 16px !important;
+    .mobile-chip:active {
+        transform: scale(0.96) !important;
+    }
+    .mobile-chip.active {
+        background: var(--primary) !important;
+        color: #ffffff !important;
+        border-color: var(--primary) !important;
+        box-shadow: 0 2px 8px rgba(128,0,32,0.25) !important;
     }
 
-    /* 8. Modales en style Bottom-Sheet */
+    /* Masquer le tableau desktop sur téléphone */
+    .desktop-inventory-table {
+        display: none !important;
+    }
+
+    /* Cartes flacons luxe sur téléphone */
+    .inventory-mobile-cards {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 10px !important;
+        width: 100% !important;
+    }
+    .mobile-wine-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        overflow: hidden;
+        transition: all 0.2s ease;
+    }
+    .mobile-wine-header {
+        display: flex;
+        align-items: center;
+        padding: 12px 14px;
+        cursor: pointer;
+        position: relative;
+        gap: 12px;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .mobile-wine-stripe {
+        width: 4px;
+        height: 38px;
+        border-radius: 4px;
+        flex-shrink: 0;
+    }
+    .mobile-wine-info {
+        flex: 1;
+        min-width: 0;
+    }
+    .mobile-wine-title-line {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+    }
+    .mobile-wine-title {
+        font-family: 'Playfair Display', Georgia, serif;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-main);
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .mobile-wine-count {
+        background: rgba(128,0,32,0.08);
+        color: var(--primary);
+        font-weight: 700;
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 12px;
+        flex-shrink: 0;
+    }
+    .mobile-wine-subline {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 3px;
+    }
+    .mobile-wine-region {
+        font-size: 12px;
+        color: #64748b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .mobile-wine-chevron {
+        color: #94a3b8;
+        font-size: 12px;
+        transition: transform 0.2s ease;
+        padding: 4px;
+    }
+    .mobile-wine-card.open .mobile-wine-chevron {
+        transform: rotate(180deg);
+    }
+    .mobile-wine-body {
+        display: none;
+        padding: 0 12px 12px 12px;
+        border-top: 1px solid #f1f5f9;
+        background: #fafaf9;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .mobile-wine-card.open .mobile-wine-body {
+        display: flex;
+    }
+    .mobile-bottle-item {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 10px 12px;
+        margin-top: 8px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    }
+    .mobile-bottle-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+    }
+    .mobile-bottle-title {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+    }
+    .mobile-bottle-millesime {
+        font-weight: 800;
+        font-size: 15px;
+        color: var(--primary);
+    }
+    .mobile-bottle-appellation {
+        font-size: 12px;
+        color: #475569;
+        font-weight: 500;
+    }
+    .mobile-bottle-price {
+        font-weight: 700;
+        font-size: 13px;
+        color: #1e293b;
+    }
+    .mobile-bottle-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 5px;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+    .mobile-bottle-loc {
+        font-size: 11px;
+        color: #64748b;
+    }
+    .mobile-bottle-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid #f1f5f9;
+    }
+    .btn-m-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        padding: 7px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        border-radius: 8px;
+        cursor: pointer;
+        border: none;
+        min-height: 36px;
+        transition: 0.15s;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .btn-m-action.m-drink {
+        flex: 2;
+        background: var(--primary);
+        color: #ffffff;
+    }
+    .btn-m-action.m-drink:active {
+        background: #600018;
+    }
+    .btn-m-action.m-edit {
+        flex: 1;
+        background: #f1f5f9;
+        color: #334155;
+        border: 1px solid #cbd5e1;
+    }
+    .btn-m-action.m-delete {
+        background: #fff1f2;
+        color: #e11d48;
+        border: 1px solid #fecdd3;
+        padding: 7px 10px;
+    }
+    .mobile-empty-inventory {
+        text-align: center;
+        padding: 40px 16px;
+        background: #ffffff;
+        border-radius: 14px;
+        border: 1px dashed #cbd5e1;
+        color: #64748b;
+    }
+    .mobile-empty-inventory i {
+        font-size: 32px;
+        color: #cbd5e1;
+        margin-bottom: 8px;
+    }
+
+    /* 8. Modales en style Bottom-Sheet iPhone */
     .modal-overlay {
         padding: 0 !important;
         align-items: flex-end !important;
@@ -1112,13 +1360,22 @@ th {
     .modal-box {
         width: 100% !important;
         max-width: 100% !important;
-        max-height: 86dvh !important;
+        max-height: 88dvh !important;
         border-radius: 20px 20px 0 0 !important;
         margin: 0 !important;
         box-shadow: 0 -10px 30px rgba(0,0,0,0.35) !important;
         display: flex !important;
         flex-direction: column !important;
         overflow: hidden !important;
+    }
+    .sheet-drag-handle {
+        display: block !important;
+        width: 38px;
+        height: 4px;
+        background: #cbd5e1;
+        border-radius: 3px;
+        margin: 8px auto 2px auto;
+        flex-shrink: 0;
     }
     .modal-box > form {
         display: flex !important;
@@ -1128,7 +1385,7 @@ th {
         overflow: hidden !important;
     }
     .modal-header {
-        padding: 14px 18px !important;
+        padding: 10px 16px !important;
         flex-shrink: 0 !important;
     }
     .modal-header h2 {
@@ -1141,15 +1398,33 @@ th {
         -webkit-overflow-scrolling: touch !important;
     }
     .form-column {
-        padding: 14px 16px !important;
+        padding: 10px 16px !important;
+    }
+    .form-section-title {
+        font-size: 11px !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.8px !important;
+        font-weight: 700 !important;
+        color: #64748b !important;
+        margin: 10px 0 8px 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        border-bottom: 1px solid #f1f5f9 !important;
+        padding-bottom: 4px !important;
+    }
+    .form-section-title i {
+        font-size: 11px !important;
+        color: var(--primary) !important;
     }
     .modal-footer {
-        padding: 12px 18px max(18px, env(safe-area-inset-bottom, 18px)) !important;
+        padding: 10px 16px max(14px, env(safe-area-inset-bottom, 14px)) !important;
+        display: flex !important;
         flex-direction: column !important;
-        gap: 8px !important;
+        gap: 6px !important;
         background: #ffffff !important;
-        border-top: 1px solid var(--border) !important;
-        box-shadow: 0 -4px 16px rgba(0,0,0,0.08) !important;
+        border-top: 1px solid #f1f5f9 !important;
+        box-shadow: 0 -3px 12px rgba(0,0,0,0.06) !important;
         flex-shrink: 0 !important;
         z-index: 50 !important;
     }
@@ -1157,15 +1432,53 @@ th {
         width: 100% !important;
         justify-content: center !important;
         min-height: 44px !important;
-        padding: 12px !important;
+        padding: 10px 14px !important;
         font-size: 14px !important;
+        border-radius: 10px !important;
     }
     .modal-footer .btn-save-main {
         font-size: 15px !important;
         font-weight: 700 !important;
-        box-shadow: 0 3px 10px rgba(128,0,32,0.3) !important;
+        min-height: 46px !important;
+        border-radius: 12px !important;
+        box-shadow: 0 3px 10px rgba(128,0,32,0.25) !important;
     }
-    /* Optimisation des cellules casiers & caisses 2D sur téléphone */
+    .modal-footer-subactions {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        width: 100% !important;
+    }
+    .desktop-only-btn {
+        display: none !important;
+    }
+    .save-another-toggle {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 6px !important;
+        font-size: 12px !important;
+        color: #64748b !important;
+        cursor: pointer !important;
+        padding: 4px 8px !important;
+    }
+    .save-another-toggle input {
+        accent-color: var(--primary) !important;
+        width: 16px !important;
+        height: 16px !important;
+    }
+
+    /* 2D Plan Modal Header & Caisses */
+    .block-modal-header {
+        padding: 10px 14px !important;
+    }
+    .block-modal-header h2 {
+        font-size: 15px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        max-width: calc(100vw - 110px) !important;
+    }
     .casier-2d-cell {
         min-width: 36px !important;
         min-height: 36px !important;
@@ -1176,12 +1489,13 @@ th {
         font-size: 11px !important;
     }
     .carton-2d-grid {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
-        gap: 10px !important;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important;
+        gap: 8px !important;
     }
     .carton-2d-crate {
-        min-height: 100px !important;
+        min-height: 92px !important;
         padding: 8px 10px !important;
+        border-radius: 8px !important;
     }
     .crate-brand-title {
         font-size: 11px !important;
@@ -1196,7 +1510,8 @@ th {
     }
     .input-group input, .input-group select, .input-group textarea {
         font-size: 16px !important; /* Pas de zoom intempestif sur iPhone */
-        padding: 11px 12px !important;
+        padding: 10px 12px !important;
+        border-radius: 8px !important;
     }
 
     /* 9. Visite 3D sur mobile */

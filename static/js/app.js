@@ -193,6 +193,14 @@ function initAuthListeners() {
         });
     }
 
+    const btnProfileLogout = document.getElementById('btnProfileLogout');
+    if (btnProfileLogout) {
+        btnProfileLogout.addEventListener('click', () => {
+            if (profileModal) profileModal.classList.add('hidden');
+            if (btnLogout) btnLogout.click();
+        });
+    }
+
     const formProfile = document.getElementById('formProfile');
     if (formProfile) {
         formProfile.addEventListener('submit', async (e) => {
@@ -1021,11 +1029,14 @@ async function handleWineSubmit(shouldClose) {
 
         await loadAllUserData();
 
-        if (shouldClose) {
+        const chkAddAnother = document.getElementById('chkAddAnother');
+        const keepOpen = (!shouldClose) || (chkAddAnother && chkAddAnother.checked);
+
+        if (!keepOpen) {
             document.getElementById('modalAdd').classList.add('hidden');
         } else {
             document.getElementById('f_nom').value = '';
-    initAppellationShortcuts();
+            initAppellationShortcuts();
             document.getElementById('f_nom').focus();
         }
     } catch (err) {
@@ -1082,10 +1093,11 @@ async function deleteBottle(bottleId) {
     }
 }
 
-// ── Rendu du tableau d'inventaire ──
+// ── Rendu du tableau et des cartes d'inventaire ──
 function renderInventoryTable() {
     const tbody = document.getElementById('inventoryTableBody');
-    if (!tbody) return;
+    const mobileCardsContainer = document.getElementById('inventoryMobileCards');
+    if (!tbody && !mobileCardsContainer) return;
 
     const searchTerm = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
     const filterType = document.getElementById('filterType')?.value || '';
@@ -1106,14 +1118,28 @@ function renderInventoryTable() {
     });
 
     if (filtered.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7" style="text-align: center; padding: 48px 16px; color: var(--text-muted);">
-                    <i class="fas fa-wine-bottle" style="font-size: 32px; opacity: 0.3; margin-bottom: 8px; display: block;"></i>
-                    Aucun vin ne correspond à votre recherche.
-                </td>
-            </tr>
-        `;
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 48px 16px; color: var(--text-muted);">
+                        <i class="fas fa-wine-bottle" style="font-size: 32px; opacity: 0.3; margin-bottom: 8px; display: block;"></i>
+                        Aucun vin ne correspond à votre recherche.
+                    </td>
+                </tr>
+            `;
+        }
+        if (mobileCardsContainer) {
+            mobileCardsContainer.innerHTML = `
+                <div class="mobile-empty-inventory">
+                    <i class="fas fa-wine-bottle"></i>
+                    <h4>Aucun flacon trouvé</h4>
+                    <p>Modifiez vos filtres ou ajoutez une nouvelle bouteille à votre cave.</p>
+                    <button type="button" class="btn-primary" onclick="document.getElementById('btnAddWine')?.click()" style="margin-top:12px; font-size:13px; padding:8px 16px;">
+                        <i class="fas fa-plus"></i> Ajouter un flacon
+                    </button>
+                </div>
+            `;
+        }
         return;
     }
 
@@ -1125,93 +1151,193 @@ function renderInventoryTable() {
         groups[key].push(b);
     });
 
-    tbody.innerHTML = Object.entries(groups).map(([domaine, bottles]) => {
-        const totalQty = bottles.length;
-        const first = bottles[0];
-        const badgeClass = WINE_COLORS[first.type]?.css || 'badge-rouge';
-        
-        // Sous-lignes pour chaque millésime / bouteille
-        const detailRows = bottles.map(b => {
-            const zone = STATE.getZoneById(b.zone_id || b.emplacement?.zone_id);
-            let locString = '';
-            if (zone) {
-                if (zone.type === 'cartons') {
-                    locString = `📦 ${zone.name} — ${b.emplacement?.carton_label || 'Carton'}`;
-                } else if (zone.type === 'armoire') {
-                    locString = `❄️ ${zone.name} — Clayette ${b.emplacement?.lig || 1}`;
+    // 1. Rendu Desktop (Tableau HTML complet)
+    if (tbody) {
+        tbody.innerHTML = Object.entries(groups).map(([domaine, bottles]) => {
+            const totalQty = bottles.length;
+            const first = bottles[0];
+            const badgeClass = WINE_COLORS[first.type]?.css || 'badge-rouge';
+            
+            // Sous-lignes pour chaque millésime / bouteille
+            const detailRows = bottles.map(b => {
+                const zone = STATE.getZoneById(b.zone_id || b.emplacement?.zone_id);
+                let locString = '';
+                if (zone) {
+                    if (zone.type === 'cartons') {
+                        locString = `📦 ${zone.name} — ${b.emplacement?.carton_label || 'Carton'}`;
+                    } else if (zone.type === 'armoire') {
+                        locString = `❄️ ${zone.name} — Clayette ${b.emplacement?.lig || 1}`;
+                    } else {
+                        locString = `🪵 ${zone.name} (C${b.emplacement?.col || 1}, L${b.emplacement?.lig || 1})`;
+                    }
                 } else {
-                    locString = `🪵 ${zone.name} (C${b.emplacement?.col || 1}, L${b.emplacement?.lig || 1})`;
+                    locString = `Casier (C${b.emplacement?.col || 1}, L${b.emplacement?.lig || 1})`;
                 }
-            } else {
-                locString = `Casier (C${b.emplacement?.col || 1}, L${b.emplacement?.lig || 1})`;
-            }
 
-            let apogeeBadge = '';
-            if (b.apogee_debut && b.apogee_fin) {
-                if (currentYear < b.apogee_debut) {
-                    apogeeBadge = `<span class="badge" style="background:#eff6ff;color:#1e40af;">À garder (${b.apogee_debut}-${b.apogee_fin})</span>`;
-                } else if (currentYear <= b.apogee_fin) {
-                    apogeeBadge = `<span class="badge" style="background:#f0fdf4;color:#166534;">À point (${b.apogee_debut}-${b.apogee_fin})</span>`;
+                let apogeeBadge = '';
+                if (b.apogee_debut && b.apogee_fin) {
+                    if (currentYear < b.apogee_debut) {
+                        apogeeBadge = `<span class="badge" style="background:#eff6ff;color:#1e40af;">À garder (${b.apogee_debut}-${b.apogee_fin})</span>`;
+                    } else if (currentYear <= b.apogee_fin) {
+                        apogeeBadge = `<span class="badge" style="background:#f0fdf4;color:#166534;">À point (${b.apogee_debut}-${b.apogee_fin})</span>`;
+                    } else {
+                        apogeeBadge = `<span class="badge" style="background:#fef2f2;color:#991b1b;">À boire d'urgence</span>`;
+                    }
                 } else {
-                    apogeeBadge = `<span class="badge" style="background:#fef2f2;color:#991b1b;">À boire d'urgence</span>`;
+                    apogeeBadge = `<span style="color:#9ca3af;font-size:11px;">Non renseignée</span>`;
                 }
-            } else {
-                apogeeBadge = `<span style="color:#9ca3af;font-size:11px;">Non renseignée</span>`;
-            }
+
+                return `
+                    <tr>
+                        <td style="padding-left: 36px; font-weight: 600;">${b.millesime || 'N.V.'}</td>
+                        <td>${b.appellation ? escHtml(b.appellation) : '—'}</td>
+                        <td>${locString}</td>
+                        <td>${b.prix ? b.prix.toFixed(2) + ' €' : '—'}</td>
+                        <td>${apogeeBadge}</td>
+                        <td class="text-right">
+                            <button class="action-btn drink-btn" title="Déguster ce flacon" onclick="openTastingForBottle(${b.id})">
+                                <i class="fas fa-wine-glass-alt"></i>
+                            </button>
+                            <button class="action-btn" title="Modifier" onclick="openEditWineModal(${b.id})">
+                                <i class="fas fa-pen"></i>
+                            </button>
+                            <button class="action-btn delete-btn" title="Retirer" onclick="deleteBottle(${b.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
 
             return `
-                <tr>
-                    <td style="padding-left: 36px; font-weight: 600;">${b.millesime || 'N.V.'}</td>
-                    <td>${b.appellation ? escHtml(b.appellation) : '—'}</td>
-                    <td>${locString}</td>
-                    <td>${b.prix ? b.prix.toFixed(2) + ' €' : '—'}</td>
-                    <td>${apogeeBadge}</td>
-                    <td class="text-right">
-                        <button class="action-btn drink-btn" title="Déguster ce flacon" onclick="openTastingForBottle(${b.id})">
-                            <i class="fas fa-wine-glass-alt"></i>
-                        </button>
-                        <button class="action-btn" title="Modifier" onclick="openEditWineModal(${b.id})">
-                            <i class="fas fa-pen"></i>
-                        </button>
-                        <button class="action-btn delete-btn" title="Retirer" onclick="deleteBottle(${b.id})">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                <tr class="parent-row" onclick="toggleAccordion(this)">
+                    <td>
+                        <i class="fas fa-chevron-right" style="margin-right: 10px;"></i>
+                        <strong>${escHtml(domaine)}</strong>
+                    </td>
+                    <td><span class="badge ${badgeClass}">${first.type}</span></td>
+                    <td>${first.region ? escHtml(first.region) : '—'}</td>
+                    <td><span class="count-badge">${totalQty} bll.</span></td>
+                    <td colspan="3" style="color: var(--text-muted); font-size: 12px;">Cliquer pour dérouler les millésimes</td>
+                </tr>
+                <tr class="child-row">
+                    <td colspan="7" style="padding: 0;">
+                        <table class="detail-table">
+                            <thead>
+                                <tr class="detail-header">
+                                    <th style="padding-left: 36px;">Millésime</th>
+                                    <th>Appellation</th>
+                                    <th>Emplacement</th>
+                                    <th>Prix</th>
+                                    <th>Apogée</th>
+                                    <th class="text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>${detailRows}</tbody>
+                        </table>
                     </td>
                 </tr>
             `;
         }).join('');
+    }
 
-        return `
-            <tr class="parent-row" onclick="toggleAccordion(this)">
-                <td>
-                    <i class="fas fa-chevron-right" style="margin-right: 10px;"></i>
-                    <strong>${escHtml(domaine)}</strong>
-                </td>
-                <td><span class="badge ${badgeClass}">${first.type}</span></td>
-                <td>${first.region ? escHtml(first.region) : '—'}</td>
-                <td><span class="count-badge">${totalQty} bll.</span></td>
-                <td colspan="3" style="color: var(--text-muted); font-size: 12px;">Cliquer pour dérouler les millésimes</td>
-            </tr>
-            <tr class="child-row">
-                <td colspan="7" style="padding: 0;">
-                    <table class="detail-table">
-                        <thead>
-                            <tr class="detail-header">
-                                <th style="padding-left: 36px;">Millésime</th>
-                                <th>Appellation</th>
-                                <th>Emplacement</th>
-                                <th>Prix</th>
-                                <th>Apogée</th>
-                                <th class="text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>${detailRows}</tbody>
-                    </table>
-                </td>
-            </tr>
-        `;
-    }).join('');
+    // 2. Rendu Mobile (Cartes tactiles Mobile-First)
+    if (mobileCardsContainer) {
+        mobileCardsContainer.innerHTML = Object.entries(groups).map(([domaine, bottles]) => {
+            const totalQty = bottles.length;
+            const first = bottles[0];
+            const badgeClass = WINE_COLORS[first.type]?.css || 'badge-rouge';
+            const colorHex = WINE_COLORS[first.type]?.hex || '#800020';
+
+            const subBottlesHtml = bottles.map(b => {
+                const zone = STATE.getZoneById(b.zone_id || b.emplacement?.zone_id);
+                let locString = '';
+                if (zone) {
+                    if (zone.type === 'cartons') {
+                        locString = `📦 ${b.emplacement?.carton_label || zone.name}`;
+                    } else if (zone.type === 'armoire') {
+                        locString = `❄️ Clayette ${b.emplacement?.lig || 1} (${zone.name})`;
+                    } else if (zone.type === 'chariot') {
+                        locString = `🥃 ${zone.name} (${b.emplacement?.lig === 1 ? 'Haut' : 'Bas'})`;
+                    } else {
+                        locString = `🪵 Casier C${b.emplacement?.col || 1}/L${b.emplacement?.lig || 1}`;
+                    }
+                } else {
+                    locString = `Casier C${b.emplacement?.col || 1}/L${b.emplacement?.lig || 1}`;
+                }
+
+                let apogeeBadge = '';
+                if (b.apogee_debut && b.apogee_fin) {
+                    if (currentYear < b.apogee_debut) {
+                        apogeeBadge = `<span class="badge" style="background:#eff6ff;color:#1e40af;font-size:10px;">À garder (${b.apogee_debut}-${b.apogee_fin})</span>`;
+                    } else if (currentYear <= b.apogee_fin) {
+                        apogeeBadge = `<span class="badge" style="background:#f0fdf4;color:#166534;font-size:10px;">À point (${b.apogee_debut}-${b.apogee_fin})</span>`;
+                    } else {
+                        apogeeBadge = `<span class="badge" style="background:#fef2f2;color:#991b1b;font-size:10px;">À boire d'urgence</span>`;
+                    }
+                }
+
+                return `
+                    <div class="mobile-bottle-item">
+                        <div class="mobile-bottle-header">
+                            <div class="mobile-bottle-title">
+                                <span class="mobile-bottle-millesime">${b.millesime || 'N.V.'}</span>
+                                <span class="mobile-bottle-appellation">${b.appellation ? escHtml(b.appellation) : ''}</span>
+                            </div>
+                            <div class="mobile-bottle-price">${b.prix ? b.prix.toFixed(2) + ' €' : ''}</div>
+                        </div>
+                        <div class="mobile-bottle-meta">
+                            <span class="mobile-bottle-loc"><i class="fas fa-map-marker-alt"></i> ${locString}</span>
+                            ${apogeeBadge}
+                        </div>
+                        <div class="mobile-bottle-actions">
+                            <button type="button" class="btn-m-action m-drink" onclick="openTastingForBottle(${b.id})" title="Déguster">
+                                <i class="fas fa-wine-glass-alt"></i> <span>Déguster</span>
+                            </button>
+                            <button type="button" class="btn-m-action m-edit" onclick="openEditWineModal(${b.id})" title="Modifier">
+                                <i class="fas fa-pen"></i> <span>Modifier</span>
+                            </button>
+                            <button type="button" class="btn-m-action m-delete" onclick="deleteBottle(${b.id})" title="Retirer">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="mobile-wine-card">
+                    <div class="mobile-wine-header" onclick="toggleMobileCard(this)">
+                        <div class="mobile-wine-stripe" style="background: ${colorHex};"></div>
+                        <div class="mobile-wine-info">
+                            <div class="mobile-wine-title-line">
+                                <h3 class="mobile-wine-title">${escHtml(domaine)}</h3>
+                                <span class="mobile-wine-count">${totalQty} bll.</span>
+                            </div>
+                            <div class="mobile-wine-subline">
+                                <span class="badge ${badgeClass}">${first.type}</span>
+                                ${first.region ? `<span class="mobile-wine-region">${escHtml(first.region)}</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="mobile-wine-chevron">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <div class="mobile-wine-body">
+                        ${subBottlesHtml}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
 }
+
+function toggleMobileCard(headerEl) {
+    const card = headerEl.closest('.mobile-wine-card');
+    if (!card) return;
+    card.classList.toggle('open');
+}
+window.toggleMobileCard = toggleMobileCard;
 
 function toggleAccordion(row) {
     row.classList.toggle('expanded');
@@ -1227,8 +1353,28 @@ function setupSearchListeners() {
     const fZone = document.getElementById('filterZone');
 
     if (sInput) sInput.addEventListener('input', () => renderInventoryTable());
-    if (fType) fType.addEventListener('change', () => renderInventoryTable());
+    if (fType) fType.addEventListener('change', () => {
+        // Synchroniser les puces tactiles
+        const chips = document.querySelectorAll('.mobile-chip');
+        chips.forEach(c => {
+            if (c.getAttribute('data-type') === fType.value) c.classList.add('active');
+            else c.classList.remove('active');
+        });
+        renderInventoryTable();
+    });
     if (fZone) fZone.addEventListener('change', () => renderInventoryTable());
+
+    // Puces filtres mobiles rapides
+    const chips = document.querySelectorAll('.mobile-chip');
+    chips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            chips.forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            const targetType = chip.getAttribute('data-type') || '';
+            if (fType) fType.value = targetType;
+            renderInventoryTable();
+        });
+    });
 }
 
 // ==========================================

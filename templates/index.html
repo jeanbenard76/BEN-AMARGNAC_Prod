@@ -12,7 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 
 <!-- Feuilles de styles -->
-<link rel="stylesheet" href="/static/css/style.css?v=3.4">
+<link rel="stylesheet" href="/static/css/style.css?v=5.0.0">
 </head>
 <body>
 
@@ -172,27 +172,44 @@
             </button>
         </div>
 
-        <div class="card toolbar">
+        <div class="card toolbar inventory-toolbar">
             <div class="search-group">
                 <i class="fas fa-search"></i>
-                <input type="text" id="searchInput" placeholder="Rechercher domaine, appellation...">
+                <input type="text" id="searchInput" placeholder="Rechercher domaine, appellation, millésime...">
             </div>
-            <select id="filterType">
-                <option value="">Tous les types</option>
-                <option value="Rouge">Rouge</option>
-                <option value="Blanc">Blanc</option>
-                <option value="Rosé">Rosé</option>
-                <option value="Champagne">Champagne</option>
-                <option value="Cidre">Cidre</option>
-                <option value="Bière">Bière</option>
-                <option value="Spiritueux">Spiritueux (Armagnac, Whisky...)</option>
-            </select>
-            <select id="filterZone">
-                <option value="">Tous les espaces</option>
-            </select>
+            <div class="toolbar-selects">
+                <select id="filterType" class="desktop-filter-select">
+                    <option value="">Tous les types</option>
+                    <option value="Rouge">Rouge</option>
+                    <option value="Blanc">Blanc</option>
+                    <option value="Rosé">Rosé</option>
+                    <option value="Champagne">Champagne</option>
+                    <option value="Cidre">Cidre</option>
+                    <option value="Bière">Bière</option>
+                    <option value="Spiritueux">Spiritueux (Armagnac, Whisky...)</option>
+                </select>
+                <select id="filterZone">
+                    <option value="">Tous les espaces</option>
+                </select>
+            </div>
         </div>
 
-        <div class="table-wrapper card">
+        <!-- Filtres rapides par pilules tactiles défilantes (Mobile-first UX) -->
+        <div class="mobile-filter-chips-bar" id="mobileFilterChips">
+            <button type="button" class="mobile-chip active" data-type="">Tous</button>
+            <button type="button" class="mobile-chip" data-type="Rouge">🍷 Rouge</button>
+            <button type="button" class="mobile-chip" data-type="Blanc">🥂 Blanc</button>
+            <button type="button" class="mobile-chip" data-type="Rosé">🌸 Rosé</button>
+            <button type="button" class="mobile-chip" data-type="Champagne">🍾 Bulles</button>
+            <button type="button" class="mobile-chip" data-type="Spiritueux">🥃 Spiritueux</button>
+            <button type="button" class="mobile-chip" data-type="Bière">🍺 Bière</button>
+        </div>
+
+        <!-- VUE CARTES MOBILES LUXE (Sur mobile <= 860px) -->
+        <div id="inventoryMobileCards" class="inventory-mobile-cards"></div>
+
+        <!-- VUE TABLEAU DESKTOP (Sur écrans larges > 860px) -->
+        <div class="table-wrapper card desktop-inventory-table">
             <table>
                 <thead>
                     <tr>
@@ -446,23 +463,26 @@
 <!-- 1. MODALE AJOUT / ÉDITION DE VIN -->
 <div id="modalAdd" class="modal-overlay hidden">
     <div class="modal-box">
+        <!-- Poignée mobile pour glisser/fermer -->
+        <div class="sheet-drag-handle"></div>
+
         <div class="modal-header">
             <h2 id="modalTitle"><i class="fas fa-wine-bottle" style="color: var(--primary);"></i> Ajouter un vin</h2>
-            <button class="close-modal-btn-x" onclick="document.getElementById('modalAdd').classList.add('hidden')">×</button>
+            <button type="button" class="close-modal-btn-x" onclick="document.getElementById('modalAdd').classList.add('hidden')" aria-label="Fermer">×</button>
         </div>
         <form id="formAddWine">
             <input type="hidden" id="edit_bottle_id">
             <div class="form-grid">
                 <div class="form-column">
-                    <h3><i class="fas fa-info-circle"></i> Caractéristiques</h3>
+                    <div class="form-section-title"><i class="fas fa-wine-bottle"></i> Flacon & Caractéristiques</div>
                     <div class="input-group">
                         <label for="f_nom">Domaine / Nom du flacon *</label>
-                        <input type="text" id="f_nom" required placeholder="Ex: Château Margaux">
+                        <input type="text" id="f_nom" required placeholder="Ex: Château Margaux" autocomplete="off">
                     </div>
                     <div class="row">
                         <div class="input-group">
                             <label for="f_millesime">Millésime</label>
-                            <input type="number" id="f_millesime" min="1900" max="2099" placeholder="2018">
+                            <input type="number" id="f_millesime" min="1900" max="2099" placeholder="2018" inputmode="numeric">
                         </div>
                         <div class="input-group">
                             <label for="f_type">Couleur / Type</label>
@@ -500,18 +520,18 @@
                                     <i class="fas fa-search-dollar"></i> <span>Cote iDealwine</span>
                                 </button>
                             </div>
-                            <input type="number" id="f_prix" step="0.5" min="0" placeholder="0.00">
+                            <input type="number" id="f_prix" step="0.5" min="0" placeholder="0.00" inputmode="decimal">
                             <div id="idealwineEstimateHint" style="font-size: 11px; margin-top: 5px; display: none;"></div>
                         </div>
                         <div class="input-group">
                             <label for="f_quantite">Nombre de bouteilles</label>
-                            <input type="number" id="f_quantite" min="1" max="120" value="1">
+                            <input type="number" id="f_quantite" min="1" max="120" value="1" inputmode="numeric">
                         </div>
                     </div>
                 </div>
 
                 <div class="form-column">
-                    <h3><i class="fas fa-map-marker-alt"></i> Emplacement & Stockage</h3>
+                    <div class="form-section-title"><i class="fas fa-map-pin"></i> Emplacement & Stockage</div>
                     <div class="input-group">
                         <label for="f_zone">Espace de conservation *</label>
                         <select id="f_zone">
@@ -541,25 +561,25 @@
                     <div id="placementGridGroup" class="row">
                         <div class="input-group">
                             <label for="f_col">Colonne</label>
-                            <input type="number" id="f_col" min="1" value="1">
+                            <input type="number" id="f_col" min="1" value="1" inputmode="numeric">
                         </div>
                         <div class="input-group">
                             <label for="f_lig">Ligne / Niveau</label>
-                            <input type="number" id="f_lig" min="1" value="1">
+                            <input type="number" id="f_lig" min="1" value="1" inputmode="numeric">
                         </div>
                     </div>
 
                     <div class="separator"></div>
 
-                    <h3><i class="fas fa-hourglass-half"></i> Maturité & Notes</h3>
+                    <div class="form-section-title"><i class="fas fa-hourglass-half"></i> Maturité & Notes</div>
                     <div class="row">
                         <div class="input-group">
                             <label for="f_apogee_debut">Apogée début</label>
-                            <input type="number" id="f_apogee_debut" placeholder="2025">
+                            <input type="number" id="f_apogee_debut" placeholder="2025" inputmode="numeric">
                         </div>
                         <div class="input-group">
                             <label for="f_apogee_fin">Apogée fin</label>
-                            <input type="number" id="f_apogee_fin" placeholder="2035">
+                            <input type="number" id="f_apogee_fin" placeholder="2035" inputmode="numeric">
                         </div>
                     </div>
                     <div class="input-group">
@@ -573,12 +593,18 @@
                 <button type="submit" class="btn-primary btn-save-main" style="font-weight:700; font-size:15px;">
                     <i class="fas fa-check"></i> Enregistrer ce flacon
                 </button>
-                <button type="button" id="btnSaveAndAddAnother" class="btn-secondary">
-                    <i class="fas fa-plus"></i> Enregistrer et ajouter un autre
-                </button>
-                <button type="button" class="btn-ghost" onclick="document.getElementById('modalAdd').classList.add('hidden')">
-                    Annuler
-                </button>
+                <div class="modal-footer-subactions">
+                    <label class="save-another-toggle" id="lblSaveAnother">
+                        <input type="checkbox" id="chkAddAnother">
+                        <span>Enchaîner avec un autre flacon</span>
+                    </label>
+                    <button type="button" id="btnSaveAndAddAnother" class="btn-secondary desktop-only-btn">
+                        <i class="fas fa-plus"></i> Enregistrer et ajouter un autre
+                    </button>
+                    <button type="button" class="btn-ghost desktop-only-btn" onclick="document.getElementById('modalAdd').classList.add('hidden')">
+                        Annuler
+                    </button>
+                </div>
             </div>
         </form>
     </div>
@@ -879,9 +905,14 @@
                 <label for="prof_password">Nouveau mot de passe (laisser vide pour ne pas changer)</label>
                 <input type="password" id="prof_password" placeholder="6 caractères minimum">
             </div>
-            <div class="modal-footer" style="padding: 16px 0 0; background: transparent; border-top: none;">
-                <button type="button" class="btn-secondary" onclick="document.getElementById('profileModal').classList.add('hidden')">Fermer</button>
-                <button type="submit" class="btn-primary"><i class="fas fa-check"></i> Enregistrer</button>
+            <div class="modal-footer" style="padding: 16px 0 0; background: transparent; border-top: none; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                <button type="button" id="btnProfileLogout" class="btn-danger" style="background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; padding: 9px 14px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer;">
+                    <i class="fas fa-sign-out-alt"></i> Se déconnecter
+                </button>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn-secondary" onclick="document.getElementById('profileModal').classList.add('hidden')">Fermer</button>
+                    <button type="submit" class="btn-primary"><i class="fas fa-check"></i> Enregistrer</button>
+                </div>
             </div>
         </form>
     </div>
@@ -958,7 +989,7 @@
 <nav class="mobile-bottom-nav">
     <button type="button" class="mobile-nav-item active" data-target="dashboard">
         <i class="fas fa-chart-line"></i>
-        <span>Bord</span>
+        <span>Accueil</span>
     </button>
     <button type="button" class="mobile-nav-item" data-target="inventory">
         <i class="fas fa-list-ul"></i>
@@ -966,15 +997,15 @@
     </button>
     <button type="button" class="mobile-nav-item" data-target="cellar-config">
         <i class="fas fa-cubes-stacked"></i>
-        <span>Agencement</span>
+        <span>Espaces</span>
     </button>
     <button type="button" class="mobile-nav-item" data-target="cave3d">
         <i class="fas fa-vr-cardboard"></i>
-        <span>Visite 3D</span>
+        <span>3D</span>
     </button>
     <button type="button" class="mobile-nav-item" data-target="historique">
         <i class="fas fa-history"></i>
-        <span>Dégustations</span>
+        <span>Dégust.</span>
     </button>
     <button type="button" class="mobile-nav-item" data-target="map">
         <i class="fas fa-map-marked-alt"></i>
@@ -989,10 +1020,10 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <!-- Application Scripts -->
-<script src="/static/js/api.js?v=3.4"></script>
-<script src="/static/js/state.js?v=3.4"></script>
-<script src="/static/js/visualizer3d.js?v=3.4"></script>
-<script src="/static/js/app.js?v=3.4"></script>
+<script src="/static/js/api.js?v=5.0.0"></script>
+<script src="/static/js/state.js?v=5.0.0"></script>
+<script src="/static/js/visualizer3d.js?v=5.0.0"></script>
+<script src="/static/js/app.js?v=5.0.0"></script>
 
 </body>
 </html>
