@@ -6,13 +6,15 @@
 <link rel="icon" type="image/png" href="/static/images/ben'armagnac.png">
 <title>BEN'ARMAGNAC — Gestion de Cave & Dégustations</title>
 
-<!-- Bibliothèques Externes -->
+<!-- Bibliothèques Externes & Typographies Singulières -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,400;1,600&family=Playfair+Display:ital,wght@0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
 <!-- Feuilles de styles -->
-<link rel="stylesheet" href="/static/css/style.css?v=5.0.0">
+<link rel="stylesheet" href="/static/css/style.css?v=5.1.0">
 </head>
 <body>
 
@@ -194,15 +196,15 @@
             </div>
         </div>
 
-        <!-- Filtres rapides par pilules tactiles défilantes (Mobile-first UX) -->
+        <!-- Filtres sommelier par pastilles tactiles défilantes -->
         <div class="mobile-filter-chips-bar" id="mobileFilterChips">
             <button type="button" class="mobile-chip active" data-type="">Tous</button>
-            <button type="button" class="mobile-chip" data-type="Rouge">🍷 Rouge</button>
-            <button type="button" class="mobile-chip" data-type="Blanc">🥂 Blanc</button>
-            <button type="button" class="mobile-chip" data-type="Rosé">🌸 Rosé</button>
-            <button type="button" class="mobile-chip" data-type="Champagne">🍾 Bulles</button>
-            <button type="button" class="mobile-chip" data-type="Spiritueux">🥃 Spiritueux</button>
-            <button type="button" class="mobile-chip" data-type="Bière">🍺 Bière</button>
+            <button type="button" class="mobile-chip" data-type="Rouge"><span class="chip-wax-dot dot-rouge"></span>Rouge</button>
+            <button type="button" class="mobile-chip" data-type="Blanc"><span class="chip-wax-dot dot-blanc"></span>Blanc</button>
+            <button type="button" class="mobile-chip" data-type="Rosé"><span class="chip-wax-dot dot-rose"></span>Rosé</button>
+            <button type="button" class="mobile-chip" data-type="Champagne"><span class="chip-wax-dot dot-champagne"></span>Bulles</button>
+            <button type="button" class="mobile-chip" data-type="Spiritueux"><span class="chip-wax-dot dot-spiritueux"></span>Spiritueux</button>
+            <button type="button" class="mobile-chip" data-type="Bière"><span class="chip-wax-dot dot-biere"></span>Bière</button>
         </div>
 
         <!-- VUE CARTES MOBILES LUXE (Sur mobile <= 860px) -->
@@ -1020,10 +1022,10 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <!-- Application Scripts -->
-<script src="/static/js/api.js?v=5.0.0"></script>
-<script src="/static/js/state.js?v=5.0.0"></script>
-<script src="/static/js/visualizer3d.js?v=5.0.0"></script>
-<script src="/static/js/app.js?v=5.0.0"></script>
+<script src="/static/js/api.js?v=5.1.0"></script>
+<script src="/static/js/state.js?v=5.1.0"></script>
+<script src="/static/js/visualizer3d.js?v=5.1.0"></script>
+<script src="/static/js/app.js?v=5.1.0"></script>
 
 </body>
 </html>

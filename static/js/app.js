@@ -1254,13 +1254,13 @@ function renderInventoryTable() {
                 let locString = '';
                 if (zone) {
                     if (zone.type === 'cartons') {
-                        locString = `📦 ${b.emplacement?.carton_label || zone.name}`;
+                        locString = `Caisse : ${b.emplacement?.carton_label || zone.name}`;
                     } else if (zone.type === 'armoire') {
-                        locString = `❄️ Clayette ${b.emplacement?.lig || 1} (${zone.name})`;
+                        locString = `Clayette ${b.emplacement?.lig || 1} • ${zone.name}`;
                     } else if (zone.type === 'chariot') {
-                        locString = `🥃 ${zone.name} (${b.emplacement?.lig === 1 ? 'Haut' : 'Bas'})`;
+                        locString = `${zone.name} (${b.emplacement?.lig === 1 ? 'Plateau haut' : 'Plateau bas'})`;
                     } else {
-                        locString = `🪵 Casier C${b.emplacement?.col || 1}/L${b.emplacement?.lig || 1}`;
+                        locString = `Casier C${b.emplacement?.col || 1}/L${b.emplacement?.lig || 1}`;
                     }
                 } else {
                     locString = `Casier C${b.emplacement?.col || 1}/L${b.emplacement?.lig || 1}`;
@@ -1269,11 +1269,11 @@ function renderInventoryTable() {
                 let apogeeBadge = '';
                 if (b.apogee_debut && b.apogee_fin) {
                     if (currentYear < b.apogee_debut) {
-                        apogeeBadge = `<span class="badge" style="background:#eff6ff;color:#1e40af;font-size:10px;">À garder (${b.apogee_debut}-${b.apogee_fin})</span>`;
+                        apogeeBadge = `<span class="sommelier-apogee-badge apogee-wait">À garder (${b.apogee_debut}-${b.apogee_fin})</span>`;
                     } else if (currentYear <= b.apogee_fin) {
-                        apogeeBadge = `<span class="badge" style="background:#f0fdf4;color:#166534;font-size:10px;">À point (${b.apogee_debut}-${b.apogee_fin})</span>`;
+                        apogeeBadge = `<span class="sommelier-apogee-badge apogee-ready">À point (${b.apogee_debut}-${b.apogee_fin})</span>`;
                     } else {
-                        apogeeBadge = `<span class="badge" style="background:#fef2f2;color:#991b1b;font-size:10px;">À boire d'urgence</span>`;
+                        apogeeBadge = `<span class="sommelier-apogee-badge apogee-urgent">À boire d'urgence</span>`;
                     }
                 }
 
@@ -1287,17 +1287,17 @@ function renderInventoryTable() {
                             <div class="mobile-bottle-price">${b.prix ? b.prix.toFixed(2) + ' €' : ''}</div>
                         </div>
                         <div class="mobile-bottle-meta">
-                            <span class="mobile-bottle-loc"><i class="fas fa-map-marker-alt"></i> ${locString}</span>
+                            <span class="mobile-bottle-loc">${locString}</span>
                             ${apogeeBadge}
                         </div>
                         <div class="mobile-bottle-actions">
-                            <button type="button" class="btn-m-action m-drink" onclick="openTastingForBottle(${b.id})" title="Déguster">
+                            <button type="button" class="btn-m-action m-drink" onclick="openTastingForBottle(${b.id})" title="Déguster ce flacon">
                                 <i class="fas fa-wine-glass-alt"></i> <span>Déguster</span>
                             </button>
-                            <button type="button" class="btn-m-action m-edit" onclick="openEditWineModal(${b.id})" title="Modifier">
+                            <button type="button" class="btn-m-action m-edit" onclick="openEditWineModal(${b.id})" title="Modifier la fiche">
                                 <i class="fas fa-pen"></i> <span>Modifier</span>
                             </button>
-                            <button type="button" class="btn-m-action m-delete" onclick="deleteBottle(${b.id})" title="Retirer">
+                            <button type="button" class="btn-m-action m-delete" onclick="deleteBottle(${b.id})" title="Retirer de la cave">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -1312,10 +1312,10 @@ function renderInventoryTable() {
                         <div class="mobile-wine-info">
                             <div class="mobile-wine-title-line">
                                 <h3 class="mobile-wine-title">${escHtml(domaine)}</h3>
-                                <span class="mobile-wine-count">${totalQty} bll.</span>
+                                <span class="mobile-wine-count">${totalQty} ${totalQty > 1 ? 'flacons' : 'flacon'}</span>
                             </div>
                             <div class="mobile-wine-subline">
-                                <span class="badge ${badgeClass}">${first.type}</span>
+                                <span class="sommelier-tag" style="background:${colorHex}15; color:${colorHex}; border-color:${colorHex}30;">${first.type}</span>
                                 ${first.region ? `<span class="mobile-wine-region">${escHtml(first.region)}</span>` : ''}
                             </div>
                         </div>

@@ -1,48 +1,74 @@
 :root {
-    /* --- PALETTE COULEURS VINS — WCAG AA compliant --- */
-    --col-rouge: #800020;
-    --col-rouge-bg: #f5e6e8;
-    --col-rouge-text: #5c0016;
+    /* --- PALETTE DE CARACTÈRE : CHAI DE PRESTIGE & TERROIR --- */
+    --col-rouge: #58111a;
+    --col-rouge-bg: #f9eff1;
+    --col-rouge-text: #420a12;
 
-    --col-blanc: #854d0e;       /* amber-800 sur fond clair: ratio ~7:1 */
-    --col-blanc-bg: #fefce8;
+    --col-blanc: #8a6218;
+    --col-blanc-bg: #fbf6eb;
+    --col-blanc-text: #5c400c;
 
-    --col-rose: #9d174d;        /* pink-800 sur fond clair */
-    --col-rose-bg: #fdf2f8;
+    --col-rose: #9a2847;
+    --col-rose-bg: #fdf0f4;
+    --col-rose-text: #6b142c;
 
-    --col-champagne: #c9a84c;   /* or/champagne, sémantiquement correct */
-    --col-champagne-bg: #fdf8ed;
-    --col-champagne-text: #78480a;
+    --col-champagne: #9b7a2d;
+    --col-champagne-bg: #fcf6e9;
+    --col-champagne-text: #6b521b;
 
-    --col-cidre: #b45309;       /* ambre doux */
-    --col-cidre-bg: #fef3c7;
-    --col-cidre-text: #78350f;
+    --col-cidre: #9c5414;
+    --col-cidre-bg: #fcf2e8;
+    --col-cidre-text: #663409;
 
-    /* --- UI GÉNÉRALE --- */
-    --primary: #800020;
-    --primary-dark: #5c0016;
-    --primary-light: rgba(128,0,32,0.08);
-    --accent: #d4af37;
-    --bg-dark: #121418;
-    --bg-light: #f3f4f6;
+    --col-biere: #986616;
+    --col-biere-bg: #fcf4e8;
+
+    --col-spiritueux: #873e12;
+    --col-spiritueux-bg: #faefe8;
+    --col-spiritueux-text: #592507;
+
+    /* --- UI HAUTE-ŒNOLOGIE (Moins d'IA, plus de noblesse artisanale) --- */
+    --primary: #4a0e17;             /* Lie-de-vin velouté grand cru */
+    --primary-dark: #32080f;        /* Nectar sombre */
+    --primary-light: rgba(74, 14, 23, 0.07);
+    --primary-hover: #5d131f;
+
+    --accent: #c29849;              /* Laiton vieilli, cire de cachet & feuille d'or sobre */
+    --accent-light: #f7eed8;
+    --accent-dark: #8c6720;
+
+    --bg-dark: #141210;             /* Chêne fumé / noir d'encre chaud */
+    --bg-light: #f7f5ee;            /* Pierre calcaire / papier vergé naturel */
     --white: #ffffff;
-    --text-main: #1f2937;
-    --text-muted: #6b7280;
-    --border: #e5e7eb;
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
-    --shadow-md: 0 4px 12px rgba(0,0,0,0.10);
-    --radius: 12px;
+    --text-main: #1c1815;           /* Encre sépia profonde */
+    --text-secondary: #48413a;      /* Brun minéral */
+    --text-muted: #797166;          /* Cendre chaude */
+
+    --border: #e6dfd1;              /* Liseré parchemin chaud */
+    --border-subtle: #efeae0;
+    --border-accent: rgba(194, 152, 73, 0.35);
+
+    --shadow-sm: 0 1px 3px rgba(35, 25, 15, 0.04);
+    --shadow-md: 0 4px 16px rgba(35, 25, 15, 0.07);
+    --shadow-lg: 0 12px 32px rgba(35, 25, 15, 0.12);
+    --radius: 10px;
 
     /* Toast */
-    --toast-bg: #1f2937;
-    --toast-text: #f9fafb;
+    --toast-bg: #1e1a17;
+    --toast-text: #f7f4ed;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     background-color: var(--bg-light);
+    color: var(--text-main);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+}
     color: var(--text-main);
     display: flex;
     height: 100vh;
@@ -1113,14 +1139,14 @@ th {
         border-radius: 8px !important;
     }
 
-    /* Puces filtres tactiles défilantes */
+    /* Puces filtres sommelier défilantes */
     .mobile-filter-chips-bar {
         display: flex !important;
         gap: 8px !important;
         overflow-x: auto !important;
         -webkit-overflow-scrolling: touch !important;
         scrollbar-width: none !important;
-        margin-bottom: 12px !important;
+        margin-bottom: 14px !important;
         padding: 2px 2px 6px 2px !important;
     }
     .mobile-filter-chips-bar::-webkit-scrollbar {
@@ -1130,35 +1156,49 @@ th {
         flex-shrink: 0 !important;
         display: inline-flex !important;
         align-items: center !important;
-        gap: 5px !important;
+        gap: 6px !important;
         background: #ffffff !important;
-        border: 1px solid #e2e8f0 !important;
-        color: #475569 !important;
+        border: 1px solid var(--border) !important;
+        color: var(--text-secondary) !important;
         padding: 7px 13px !important;
-        border-radius: 20px !important;
-        font-size: 13px !important;
+        border-radius: 8px !important;
+        font-family: 'Plus Jakarta Sans', sans-serif !important;
+        font-size: 12.5px !important;
         font-weight: 600 !important;
         cursor: pointer !important;
         transition: all 0.15s ease !important;
         -webkit-tap-highlight-color: transparent !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
+        box-shadow: 0 1px 2px rgba(35,25,15,0.03) !important;
     }
     .mobile-chip:active {
-        transform: scale(0.96) !important;
+        transform: scale(0.97) !important;
     }
     .mobile-chip.active {
         background: var(--primary) !important;
-        color: #ffffff !important;
+        color: #fdfbf9 !important;
         border-color: var(--primary) !important;
-        box-shadow: 0 2px 8px rgba(128,0,32,0.25) !important;
+        box-shadow: 0 2px 8px rgba(74, 14, 23, 0.28) !important;
     }
+    .chip-wax-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        display: inline-block;
+        flex-shrink: 0;
+    }
+    .dot-rouge { background: #58111a; box-shadow: 0 0 0 1px rgba(88, 17, 26, 0.3); }
+    .dot-blanc { background: #8a6218; box-shadow: 0 0 0 1px rgba(138, 98, 24, 0.3); }
+    .dot-rose { background: #9a2847; box-shadow: 0 0 0 1px rgba(154, 40, 71, 0.3); }
+    .dot-champagne { background: #9b7a2d; box-shadow: 0 0 0 1px rgba(155, 122, 45, 0.3); }
+    .dot-spiritueux { background: #873e12; box-shadow: 0 0 0 1px rgba(135, 62, 18, 0.3); }
+    .dot-biere { background: #986616; box-shadow: 0 0 0 1px rgba(152, 102, 22, 0.3); }
 
     /* Masquer le tableau desktop sur téléphone */
     .desktop-inventory-table {
         display: none !important;
     }
 
-    /* Cartes flacons luxe sur téléphone */
+    /* Cartes flacons sommelier de caractère sur téléphone */
     .inventory-mobile-cards {
         display: flex !important;
         flex-direction: column !important;
@@ -1167,25 +1207,29 @@ th {
     }
     .mobile-wine-card {
         background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        box-shadow: 0 1px 3px rgba(35, 25, 15, 0.04);
         overflow: hidden;
-        transition: all 0.2s ease;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .mobile-wine-card.open {
+        border-color: #d8cebe;
+        box-shadow: 0 4px 14px rgba(35, 25, 15, 0.08);
     }
     .mobile-wine-header {
         display: flex;
         align-items: center;
-        padding: 12px 14px;
+        padding: 13px 14px;
         cursor: pointer;
         position: relative;
         gap: 12px;
         -webkit-tap-highlight-color: transparent;
     }
     .mobile-wine-stripe {
-        width: 4px;
+        width: 3.5px;
         height: 38px;
-        border-radius: 4px;
+        border-radius: 2px;
         flex-shrink: 0;
     }
     .mobile-wine-info {
@@ -1200,50 +1244,68 @@ th {
     }
     .mobile-wine-title {
         font-family: 'Playfair Display', Georgia, serif;
-        font-size: 15px;
+        font-size: 15.5px;
         font-weight: 700;
         color: var(--text-main);
+        letter-spacing: -0.01em;
         margin: 0;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
     .mobile-wine-count {
-        background: rgba(128,0,32,0.08);
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-variant-numeric: tabular-nums;
+        background: var(--primary-light);
         color: var(--primary);
         font-weight: 700;
         font-size: 11px;
-        padding: 3px 8px;
-        border-radius: 12px;
+        letter-spacing: 0.02em;
+        padding: 2.5px 8px;
+        border-radius: 6px;
+        border: 1px solid rgba(74, 14, 23, 0.12);
         flex-shrink: 0;
     }
     .mobile-wine-subline {
         display: flex;
-        align-items: center;
+        align-items: baseline;
         gap: 8px;
-        margin-top: 3px;
+        margin-top: 4px;
+    }
+    .sommelier-tag {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        padding: 2px 7px;
+        border-radius: 4px;
+        border: 1px solid transparent;
     }
     .mobile-wine-region {
-        font-size: 12px;
-        color: #64748b;
+        font-family: 'Cormorant Garamond', Georgia, serif;
+        font-style: italic;
+        font-size: 13.5px;
+        color: var(--text-muted);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
     .mobile-wine-chevron {
-        color: #94a3b8;
+        color: #a8a095;
         font-size: 12px;
-        transition: transform 0.2s ease;
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         padding: 4px;
     }
     .mobile-wine-card.open .mobile-wine-chevron {
         transform: rotate(180deg);
+        color: var(--primary);
     }
     .mobile-wine-body {
         display: none;
         padding: 0 12px 12px 12px;
-        border-top: 1px solid #f1f5f9;
-        background: #fafaf9;
+        border-top: 1px solid var(--border-subtle);
+        background: #faf8f5;
         flex-direction: column;
         gap: 8px;
     }
@@ -1252,11 +1314,11 @@ th {
     }
     .mobile-bottle-item {
         background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 10px;
-        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 11px 13px;
         margin-top: 8px;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+        box-shadow: 0 1px 2px rgba(35, 25, 15, 0.02);
     }
     .mobile-bottle-header {
         display: flex;
@@ -1269,73 +1331,104 @@ th {
         gap: 8px;
     }
     .mobile-bottle-millesime {
-        font-weight: 800;
-        font-size: 15px;
+        font-family: 'Playfair Display', Georgia, serif;
+        font-weight: 700;
+        font-size: 16px;
         color: var(--primary);
+        letter-spacing: 0.02em;
     }
     .mobile-bottle-appellation {
-        font-size: 12px;
-        color: #475569;
+        font-family: 'Cormorant Garamond', Georgia, serif;
+        font-style: italic;
+        font-size: 14px;
+        color: var(--text-secondary);
         font-weight: 500;
     }
     .mobile-bottle-price {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-variant-numeric: tabular-nums;
         font-weight: 700;
         font-size: 13px;
-        color: #1e293b;
+        color: #2a221b;
     }
     .mobile-bottle-meta {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-top: 5px;
+        margin-top: 6px;
         flex-wrap: wrap;
         gap: 4px;
     }
     .mobile-bottle-loc {
-        font-size: 11px;
-        color: #64748b;
+        font-size: 11.5px;
+        color: var(--text-muted);
+        letter-spacing: 0.01em;
+    }
+    .sommelier-apogee-badge {
+        font-size: 10.5px;
+        font-weight: 600;
+        padding: 2px 7px;
+        border-radius: 4px;
+        letter-spacing: 0.02em;
+    }
+    .sommelier-apogee-badge.apogee-ready {
+        background: #f1f8f3;
+        color: #1b5e20;
+        border: 1px solid #c8e6c9;
+    }
+    .sommelier-apogee-badge.apogee-wait {
+        background: #f5f8fc;
+        color: #1e3a8a;
+        border: 1px solid #dbeafe;
+    }
+    .sommelier-apogee-badge.apogee-urgent {
+        background: #fcf2f2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
     }
     .mobile-bottle-actions {
         display: flex;
         gap: 8px;
-        margin-top: 8px;
-        padding-top: 8px;
-        border-top: 1px solid #f1f5f9;
+        margin-top: 10px;
+        padding-top: 9px;
+        border-top: 1px solid var(--border-subtle);
     }
     .btn-m-action {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 5px;
-        padding: 7px 12px;
+        gap: 6px;
+        padding: 8px 12px;
         font-size: 12px;
         font-weight: 600;
-        border-radius: 8px;
+        border-radius: 6px;
         cursor: pointer;
         border: none;
-        min-height: 36px;
-        transition: 0.15s;
+        min-height: 38px;
+        transition: all 0.15s ease;
         -webkit-tap-highlight-color: transparent;
     }
     .btn-m-action.m-drink {
         flex: 2;
         background: var(--primary);
-        color: #ffffff;
+        color: #fdfaf6;
+        border: 1px solid rgba(194, 152, 73, 0.35);
+        box-shadow: 0 1px 4px rgba(74, 14, 23, 0.25);
     }
     .btn-m-action.m-drink:active {
-        background: #600018;
+        background: var(--primary-dark);
     }
     .btn-m-action.m-edit {
         flex: 1;
-        background: #f1f5f9;
-        color: #334155;
-        border: 1px solid #cbd5e1;
+        background: #ffffff;
+        color: var(--text-secondary);
+        border: 1px solid var(--border);
     }
     .btn-m-action.m-delete {
-        background: #fff1f2;
-        color: #e11d48;
-        border: 1px solid #fecdd3;
-        padding: 7px 10px;
+        background: #fdf8f8;
+        color: #a82e2e;
+        border: 1px solid #f2dede;
+        padding: 8px 11px;
     }
     .mobile-empty-inventory {
         text-align: center;
